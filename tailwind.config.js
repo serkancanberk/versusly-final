@@ -21,6 +21,29 @@ module.exports = {
         sans: ["'IBM Plex Sans'", "sans-serif"],
         mono: ["'IBM Plex Mono'", "monospace"],
       },
+      fontSize: {
+        'hero': '48px', // text-hero
+        'heading': '32px', // text-heading
+        'subheading': '24px', // text-subheading
+        'body': '16px', // text-body
+        'label': '14px', // text-label
+        'caption': '13px', // text-caption
+        'ui-number': '20px', // text-ui-number
+      },
+      lineHeight: {
+        'hero': '110%',
+        'heading': '120%',
+        'subheading': '130%', // text-subheading
+        'body': '150%', // text-body
+        'label': '140%', // text-label
+        'caption': '130%', // text-caption
+        'ui-number': '110%', // text-ui-number
+      },
+      fontWeight: {
+        bold: '700', // For bold text
+        medium: '500', // For medium weight text
+        regular: '400', // For regular weight text
+      }
     },
   },
   plugins: [],
