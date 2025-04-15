@@ -7,7 +7,7 @@ const ClashFeed = () => {
     <div className="w-[760px] p-4">
 
 <div className="bg-muted25 p-6 mb-8 relative">
-  <h2 className="text-subheading text-secondary mb-5" style={{ marginTop: '80px', display: 'flex', justifyContent: 'flex-start' }}>
+  <h2 className="text-subheading text-secondary mb-1" style={{ marginTop: '80px', display: 'flex', justifyContent: 'flex-start' }}>
     🔥 Clash Starts Here.
   </h2>
   <p className="text-body text-secondary mb-5">
@@ -17,13 +17,23 @@ const ClashFeed = () => {
   <input 
     type="text" 
     placeholder="Drop your bold idea here"
-    className="w-full max-w-[636px] mb-2 px-4 py-2 text-secondary placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
+    className="w-full mb-2 px-4 py-2 text-secondary placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
   />
-  <button className="w-[187px] h-[40px] bg-primary text-secondary rounded-md mt-5">
-    Start A New Clash ⚔️
-  </button>
+  <div className="flex justify-end">
+ <button className="w-[187px] h-[40px] bg-primary text-label text-secondary rounded-md mt-5 ml-auto">
+  Start A New Clash ⚔️
+</button>
 </div>
-      <hr className="w-full max-w-[760px] border-t-1 border-muted mt-5" />
+</div>
+      <hr className="w-full border-t-1 border-muted mt-5" />
+
+      <div className="flex items-center justify-between mb-6 mt-6">
+        <h3 className="text-body text-secondary">Highlighted Clashes</h3>
+        <button className="text-primary hover:underline">Sort by 📶</button>
+      </div>
+
+
+      
       {/* Clash Starts Here */}
       <div className="space-y-4">
         {/* Clash Cards */}

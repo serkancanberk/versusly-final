@@ -3,15 +3,36 @@ import React from "react";
 export default function ClashCard() {
   return (
     <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md p-5 flex flex-col gap-4 border border-muted dark:border-muted-dark transition-colors duration-300">
-      
-      {/* Üst bölüm: Kategori + süre */}
-      <div className="flex items-center justify-between text-label text-muted-dark uppercase tracking-wide">
-        <span>🏀 Fan Battle</span>
-        <span>🧨 12h 23m left</span>
-      </div>
+{/* Üst bölüm: Profile Pic, Kullanıcı adı ve saat */}
+<div className="flex items-center justify-between mb-0">
+  <div className="flex items-center">
+    <img
+      src="https://randomuser.me/api/portraits/women/1.jpg"
+      alt="Profile"
+      className="w-10 h-10 rounded-full object-cover"
+    />
+    <div className="ml-3">
+      <span className="text-body text-secondary">username_A</span>
+      <div className="text-caption text-mutedDark">3h ago</div>
+    </div>
+  </div>
 
+  {/* Sağdaki yazılar ve menü */}
+  <div className="flex items-center">
+    <div className="flex flex-col text-right ml-2">
+      <div className="text-body text-secondary mb-1">
+        <span>Coffee ⚔️ Tea</span>
+      </div>
+      <div className="text-caption text-alert">
+        🧨 Ticking clash: 12h 23m left
+      </div>
+    </div>
+    {/* Menü butonu sağda */}
+    <button className="text-xl text-muted-dark hover:text-primary ml-5">...</button> {/* ml-5 ile boşluk arttı */}
+  </div>
+</div>
       {/* Ana görsel */}
-      <div className="w-full h-44 bg-muted-25 dark:bg-zinc-800 flex items-center justify-center rounded-lg overflow-hidden">
+      <div className="w-full h-60 bg-muted25 dark:bg-zinc-800 flex items-center justify-center rounded-md overflow-hidden mb-0">
         <img
           src="/images/clash_card_final_design.png"
           alt="Clash Visual"
@@ -19,23 +40,29 @@ export default function ClashCard() {
         />
       </div>
 
-      {/* Başlık */}
-      <h2 className="text-heading text-secondary dark:text-bgwhite leading-snug font-bold">
-        Magic Johnson ⚔️ LeBron James
-      </h2>
+      {/* Info Ticker Bantı */}
+      <div className="bg-muted25 py-2 rounded-md mb-1 pl-2">
+  <span className="text-label">⚡ New × This clash is waiting for new challengers. Become the first one!</span>
+</div>
 
-      {/* Açıklama */}
-      <p className="text-body text-muted-dark leading-relaxed">
-        Magic sadece 10 yılda LeBron’un 20 yılda başardıklarından daha fazlasını yaptı...
-      </p>
+      {/* Statement ve Argument */}
+      <h2 className="text-subheading text-secondary mb-0 pl-2">Statement</h2>
+      <p className="text-body text-secondary mb-4 pl-2">Argument... more</p>
 
-      {/* Alt alan: puan ve aksiyon */}
-      <div className="flex items-center justify-between mt-2">
-        <div className="text-caption text-muted-dark">
-          🧠 AI Score: <span className="font-semibold text-ui-number text-black dark:text-bgwhite">8.9 / 10</span>
+      {/* Düz çizgi */}
+      <hr className="border-t-1 border-muted mb-4" />
+
+      {/* Footer */}
+      <div className="flex items-center justify-between mb-2">
+        {/* Sağ taraf */}
+        <div className="text-caption text-muted-dark space-x-6 pl-2">
+          <span>👍 Like (X)</span>
+          <span>💬 Arguments (X)</span>
+          <span>🔗 Copy Link</span>
         </div>
-        <button className="text-label text-accent hover:underline font-medium">
-          Join the Clash →
+        {/* Sol taraf */}
+        <button className="w-[187px] h-[40px] bg-primary text-secondary rounded-md text-sm">
+          Check This
         </button>
       </div>
     </div>
