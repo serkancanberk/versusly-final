@@ -4,9 +4,9 @@ import ClashCard from './ClashCard';
 
 const ClashFeed = () => {
   return (
-    <div className="w-[760px] p-4">
+    <div className="w-2/4">
 
-<div className="bg-muted25 p-6 mb-8 relative">
+<div className="bg-muted25 p-10 mb-8 relative">
   <h2 className="text-subheading text-secondary mb-1" style={{ marginTop: '80px', display: 'flex', justifyContent: 'flex-start' }}>
     🔥 Clash Starts Here.
   </h2>
@@ -25,17 +25,15 @@ const ClashFeed = () => {
 </button>
 </div>
 </div>
-      <hr className="w-full border-t-1 border-muted mt-5" />
-
-      <div className="flex items-center justify-between mb-6 mt-6">
-        <h3 className="text-body text-secondary">Highlighted Clashes</h3>
-        <button className="text-primary hover:underline">Sort by 📶</button>
+      <div className="flex items-center justify-between mb-0 mt-10 ">
+        <h3 className="text-body text-secondary px-12 ">Highlighted Clashes</h3>
+        <button className="text-primary hover:underline px-12 ">Sort by 📶</button>
       </div>
 
 
       
       {/* Clash Starts Here */}
-      <div className="space-y-4">
+      <div className="space-y-4  p-10">
         {/* Clash Cards */}
         <ClashCard />
         <ClashCard />

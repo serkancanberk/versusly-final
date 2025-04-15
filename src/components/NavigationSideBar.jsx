@@ -3,7 +3,7 @@ import React from "react";
 
 const NavigationSideBar = () => {
   return (
-    <div className="w-[310px] bg-zinc-100 dark:bg-zinc-800 p-4 pl-8 h-screen">
+    <div className=" w-1/4 bg-zinc-100 dark:bg-zinc-800 p-4 pl-8 h-screen">
       {/* Logo Bölümü */}
       <div className="flex items-center mt-20 mb-20">
         <span className="text-4xl mr-3">⚔️</span>
