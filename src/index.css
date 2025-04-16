@@ -1,3 +1,8 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Global Arkaplan Rengi */
+body {
+  background-color: #FCFCFC; /* bgashwhite rengi */
+}

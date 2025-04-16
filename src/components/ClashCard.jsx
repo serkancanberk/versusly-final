@@ -28,7 +28,7 @@ export default function ClashCard() {
       </div>
     </div>
     {/* Menü butonu sağda */}
-    <button className="text-xl text-muted-dark hover:text-primary ml-5">...</button> {/* ml-5 ile boşluk arttı */}
+    {/* <button className="text-xl text-muted-dark hover:text-primary ml-5">...</button> */} 
   </div>
 </div>
       {/* Ana görsel */}
