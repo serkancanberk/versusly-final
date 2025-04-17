@@ -23,18 +23,14 @@ const ClashFeed = () => {
   <button className="px-6 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg mt-5 ml-auto hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover: rounded-lg hover:bg-opacity-75 w-auto">
   Start A New Clash ⚔️
 </button>
-
 </div>
 </div>
-      <div className="flex items-center justify-between mb-0 mt-10 ">
-        <h3 className="text-body font-bold text-secondary px-12 ">Highlighted Clashes</h3>
-        <button className="text-label text-secondary hover:text-mutedDark px-12 ">Sort by 📶</button>
+      <div className="flex items-center justify-between mb-1 mt-1">
+        <h3 className="text-body font-bold text-secondary px-12">Highlighted Clashes</h3>
+        <button className="text-label text-secondary hover:text-mutedDark px-12">Sort by 📶</button>
       </div>
-
-
-      
       {/* Clash Starts Here */}
-      <div className="space-y-4  p-10">
+      <div className="space-y-10  p-10">
         {/* Clash Cards */}
         <ClashCard />
         <ClashCard />

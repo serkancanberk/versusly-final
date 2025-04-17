@@ -15,38 +15,38 @@ const NavigationSideBar = () => {
       <div>
         <ul>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">💣</span> Feed
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">💣</span> Feed
             </a>
           </li>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">➕</span> New
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">➕</span> New
             </a>
           </li>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">🥷🏻</span> Profile
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">🥷🏻</span> Profile
             </a>
           </li>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">🚩</span> Notifications
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">🚩</span> Notifications
             </a>
           </li>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">☠️</span> Stats
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">☠️</span> Stats
             </a>
           </li>
           <li className="mb-9">
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">⚙️</span> Settings
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">⚙️</span> Settings
             </a>
           </li>
           <li>
-            <a href="#" className="text-sm text-secondary hover:text-alert">
-              <span className="mr-2">🆘</span> Help
+            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
+              <span className="mr-4">🆘</span> Help
             </a>
           </li>
         </ul>

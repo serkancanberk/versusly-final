@@ -50,7 +50,7 @@ export default function ClashCard() {
       <p className="text-body text-secondary mb-4 pl-2">Argument... more</p>
 
       {/* Düz çizgi */}
-      <hr className="border-t-1 border-muted mb-4" />
+      <hr className="border-t-1 border-muted mb-1" />
 
       {/* Footer */}
       <div className="flex items-center justify-between mb-2">
@@ -61,7 +61,7 @@ export default function ClashCard() {
           <span>🔗 Copy Link</span>
         </div>
         {/* Sol taraf */}
-        <button className="w-[187px] h-[40px] bg-primary text-secondary rounded-md text-sm">
+        <button className="px-6 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg mt-5 ml-auto hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover: rounded-lg hover:bg-opacity-75 w-auto">
           Check This
         </button>
       </div>
