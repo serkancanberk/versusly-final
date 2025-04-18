@@ -6,3 +6,44 @@
 body {
   background-color: #FCFCFC; /* bgashwhite rengi */
 }
+
+/* Responsive için font-size, padding, margin ayarları */
+@media (max-width: 640px) {
+  body {
+    background-color: #FCFCFC; /* bgashwhite */
+  }
+
+  /* Mobilde header öğesinin gizlenmemesi */
+  .sm\\:block {
+    display: block;
+  }
+
+  /* Örnek: text-body stilini küçültüyoruz */
+  .text-body {
+    font-size: 14px; /* Küçük ekranlarda daha küçük font */
+  }
+
+  /* Örnek: padding değerlerini küçültüyoruz */
+  .p-4 {
+    padding: 1rem; /* Küçük ekranlarda daha küçük padding */
+  }
+}
+
+/* Orta boyutlu ekranlar için */
+@media (min-width: 641px) and (max-width: 1024px) {
+  /* Orta boyutlu ekranlar için responsive ayarları */
+  .text-body {
+    font-size: 16px; /* Orta boyutlu ekranlarda daha büyük font */
+  }
+  .p-4 {
+    padding: 1.5rem;
+  }
+
+  /* Küçük ekranlarda Header'ı görünür yapmak için */
+@media (max-width: 640px) {
+  .header {
+    display: block !important; /* header'ı görünür yapmak */
+    z-index: 9999 !important; /* Header'ın üzerine çıkabilecek herhangi bir şey varsa öncelik veriyoruz */
+  }
+}
+}

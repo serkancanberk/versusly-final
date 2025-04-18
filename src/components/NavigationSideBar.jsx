@@ -1,15 +1,13 @@
-// src/components/NavigationSideBar.jsx
 import React from "react";
 
 const NavigationSideBar = () => {
   return (
-    <div className=" w-1/4 p-4 pl-8 h-screen">
+    <div className="w-full sm:w-1/4 p-4 sm:pl-8 h-screen hidden sm:block">
       {/* Logo Bölümü */}
-      <div className="flex flex-col sm:flex-row items-left mt-20 mb-20">
-  <span className="text-heading text-secondary mr-3">⚔️</span>
-  <h1 className="text-heading text-secondary font-bold">Versusly.co</h1>
-</div>
-
+      <div className="flex flex-col sm:flex-row items-start mt-20 mb-20">
+        <span className="text-heading text-secondary mr-3">⚔️</span>
+        <h1 className="text-heading text-secondary font-bold">Versusly.co</h1>
+      </div>
 
       {/* Menü Bölümü */}
       <div>
