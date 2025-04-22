@@ -1,7 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import ClashCard from "./ClashCard";
 
 const ClashFeed = () => {
+  // State: input değerini kontrol etmek için
+  const [inputValue, setInputValue] = useState("");
+
+  // Input alanı değiştiğinde state'i güncelleyen fonksiyon
+  const handleInputChange = (event) => {
+    setInputValue(event.target.value);
+  };
+
   return (
     <div className="w-full sm:w-2/4 border-l border-r border-muted">
       {/* Başlık ve Arama kutusu */}
@@ -15,11 +23,17 @@ const ClashFeed = () => {
 
         <input
           type="text"
-          placeholder="Drop your bold idea here"
+          placeholder="Drop your bold idea here first!"
           className="w-full mb-2 px-4 py-2 text-secondary placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
+          value={inputValue}  // Input değerini state'ten alıyoruz
+          onChange={handleInputChange}  // Input değeri değiştiğinde handleInputChange fonksiyonu çalışacak
         />
         <div className="flex justify-end">
-          <button className="px-6 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg mt-5 ml-auto hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover:bg-opacity-75 w-auto">
+          <button
+            className="px-6 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg mt-5 ml-auto hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover:bg-opacity-75 w-auto"
+            disabled={!inputValue}  // Input boşsa butonu devre dışı bırakıyoruz
+            style={{ opacity: inputValue ? 1 : 0.5 }}  // Eğer input boşsa buton %50 şeffaf olur
+          >
             Start A New Clash ⚔️
           </button>
         </div>

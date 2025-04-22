@@ -18,10 +18,10 @@ const RightSidebar = () => {
         <div className="space-y-2 space-x-2">
           {/* Tag buttons */}
           <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Mind Duel</button>
-   <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Pop Arena</button>
-   <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Fan Battle</button>
-   <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Taste War</button>
-   <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Tech Clash</button>
+          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Pop Arena</button>
+          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Fan Battle</button>
+          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Taste War</button>
+          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Tech Clash</button>
         </div>
       </div>
 
