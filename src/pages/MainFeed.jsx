@@ -14,20 +14,24 @@ const MainFeed = () => {
       </div>
       
       {/* Main content */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 max-w-screen-xl mx-auto">
         {/* Navigation Sidebar - Hidden on mobile */}
-        <div className="hidden sm:block sm:w-1/4">
-          <NavigationSidebar />
+        <div className="hidden sm:block sm:w-[320px] lg:w-[18%] flex-shrink-0">
+          <div className="sticky top-0 h-screen overflow-y-auto">
+            <NavigationSidebar />
+          </div>
         </div>
 
-        {/* Center Feed */}
-        <div className="w-full sm:w-2/4">
+        {/* Center Feed - Scrollable */}
+        <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
           <ClashFeed />
         </div>
 
         {/* Right Sidebar - Hidden on mobile */}
-        <div className="hidden sm:block sm:w-1/4">
-          <RightSidebar />
+        <div className="hidden sm:block sm:w-[320px] lg:w-[27%] flex-shrink-0">
+          <div className="sticky top-0 h-screen overflow-y-auto">
+            <RightSidebar />
+          </div>
         </div>
       </div>
     </div>

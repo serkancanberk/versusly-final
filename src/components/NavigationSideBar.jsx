@@ -2,53 +2,60 @@ import React from "react";
 
 const NavigationSideBar = () => {
   return (
-    <div className="w-full sm:w-1/4 p-4 sm:pl-8 h-screen hidden sm:block">
+    <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0">
       {/* Logo Bölümü */}
-      <div className="flex flex-col sm:flex-row items-start mt-20 mb-20">
-        <span className="text-heading text-secondary mr-3">⚔️</span>
-        <h1 className="text-heading text-secondary font-bold">Versusly.co</h1>
+      <div className="flex items-center py-4 mb-10 pl-2">
+        <span className="text-subheading text-secondary mr-2">⚔️</span>
+        <h1 className="text-subheading text-secondary font-bold">Versusly.co</h1>
       </div>
 
       {/* Menü Bölümü */}
-      <div>
-        <ul>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">💣</span> Feed
-            </a>
-          </li>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">➕</span> New
-            </a>
-          </li>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">🥷🏻</span> Profile
-            </a>
-          </li>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">🚩</span> Notifications
-            </a>
-          </li>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">☠️</span> Stats
-            </a>
-          </li>
-          <li className="mb-9">
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">⚙️</span> Settings
+      <nav className="flex-1">
+        <ul className="space-y-5">
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">💣</span>
+              <span className="text-body">Feed</span>
             </a>
           </li>
           <li>
-            <a href="#" className="px-2 text-sm text-secondary hover:text-alert">
-              <span className="mr-4">🆘</span> Help
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">➕</span>
+              <span className="text-body">New</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">🥷🏻</span>
+              <span className="text-body">Profile</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">🚩</span>
+              <span className="text-body">Notifications</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">☠️</span>
+              <span className="text-body">Stats</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">⚙️</span>
+              <span className="text-body">Settings</span>
+            </a>
+          </li>
+          <li>
+            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <span className="inline-block w-6 mr-3">🆘</span>
+              <span className="text-body">Help</span>
             </a>
           </li>
         </ul>
-      </div>
+      </nav>
     </div>
   );
 };

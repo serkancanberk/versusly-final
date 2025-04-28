@@ -2,39 +2,54 @@ import React from "react";
 
 const RightSidebar = () => {
   return (
-    <div className="w-1/4 p-4 flex flex-col justify-between h-screen hidden sm:block">
-      {/* Arama Inputu */}
-      <div className="mb-0 mt-20 flex-1">
-        <input
-          type="text"
-          placeholder="What battle are you looking for? 👀"
-          className="w-full py-2 px-4 text-body text-secondary placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-md"
-        />
-      </div>
-
+    <div className="p-4 pl-6 pr-4 flex flex-col h-full">
       {/* Top Combat Arenas */}
-      <div className="mb-20 mt-10 flex-1">
-        <h2 className="text-subheading text-secondary">🛡️ Top 5 Combat Arenas</h2>
-        <div className="space-y-2 space-x-2">
-          {/* Tag buttons */}
-          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Mind Duel</button>
-          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Pop Arena</button>
-          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Fan Battle</button>
-          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Taste War</button>
-          <button className="bg-muted25 text-secondary py-2 px-2 rounded-lg border-b-2 text-sm hover:text-secondary hover:bg-bgashwhite hover:border-b-2 hover:border-primary hover:rounded-lg w-auto">Tech Clash</button>
+      <div className="mt-16 mb-8">
+        <h2 className="text-subheading text-secondary mb-4">🛡️ Top Combat Arenas</h2>
+                {/* Arama kutusu */}
+                <div className="relative mb-10">
+          <input
+            type="text"
+            placeholder="What battle are you looking for?"
+            className="w-full py-2 px-4 text-sm text-secondary bg-muted25 rounded-md"
+          />
+          <div className="absolute right-2 top-2 text-secondary">
+            🔍
+          </div>
+        
+        <div className="flex flex-wrap gap-2 mb-2">
+          {/* İlk satır */}
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Mind Duel</button>
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Pop Arena</button>
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Fan Battle</button>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-2">
+          {/* İkinci satır */}
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Taste War</button>
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Tech Clash</button>
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Old School</button>
+
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-6">
+          {/* Üçüncü satır */}
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Hype Showdown</button>
+          <button className="px-3 py-3 mt-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Wildcard</button>
+        </div>
         </div>
       </div>
 
       {/* Join the Clash */}
-      <div className="flex-1">
-        <h2 className="text-subheading text-secondary">🪂 Join the Clash</h2>
-        <p className="text-body text-muted-dark mt-2">
+      <div className="mb-8">
+        <h2 className="text-subheading text-secondary mb-4">🪂 Join the Clash</h2>
+        <p className="text-body text-muted-dark mb-4">
           From hot takes to showdowns — pick a side and make it count.
         </p>
-        <button className="w-full px-6 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg mt-5 ml-auto hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover:bg-opacity-75 w-auto">
-          Sign Up With Google
+        <button className="w-full px-3 py-3 mt-3 mb-3 bg-primary text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
+          Enter With Google
         </button>
-        <button className="w-full py-2 mt-4 border border-muted rounded-lg border-muted-dark text-mutedDark hover:shadow-md hover:bg-bgashwhite hover:border-b-4 hover:border-primary hover:bg-opacity-75 w-auto">
+        <button className="w-full px-3 py-3 mt-2 mb-3 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
           Rejoin
         </button>
       </div>
