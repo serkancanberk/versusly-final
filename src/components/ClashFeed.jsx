@@ -4,6 +4,7 @@ import ClashCard from "./ClashCard";
 const ClashFeed = () => {
   // State değişkenleri
   const [inputValue, setInputValue] = useState("");
+  const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
   const [supportingArgument, setSupportingArgument] = useState("");
   const [selectedSide, setSelectedSide] = useState("A");
   const [showDetailedForm, setShowDetailedForm] = useState(false);
@@ -23,25 +24,32 @@ const ClashFeed = () => {
   // Input alanı değiştiğinde state'i güncelleyen fonksiyon
   const handleInputChange = (event) => {
     setInputValue(event.target.value);
-    // Input değiştiğinde Side A ve Side B başlıklarını güncelle
+  };
+
+  // Title alanı değiştiğinde state'i güncelleyen fonksiyon
+  const handleTitleChange = (event) => {
+    setTitleValue(event.target.value);
+    // Title değiştiğinde Side A ve Side B başlıklarını güncelle
     updateSideTitles(event.target.value);
   };
 
   // Enter tuşuna basıldığında form geçişini sağlayan fonksiyon
   const handleKeyPress = (event) => {
     // Enter tuşuna basıldığında ve input alanında değer varsa
-    if (event.key === "Enter" && inputValue.trim() !== "") {
-      // Eğer basit form gösteriliyorsa detaylı forma geç
-      if (!showDetailedForm) {
+    if (event.key === "Enter") {
+      // Eğer basit form gösteriliyorsa ve title alanında değer varsa detaylı forma geç
+      if (!showDetailedForm && titleValue.trim() !== "") {
         handleStartNewClash();
       } 
-      // Eğer detaylı form gösteriliyorsa ve destekleyici argüman alanında değilse, bir sonraki alana geç
-      else if (event.target.id === "bold-statement-input") {
-        document.getElementById("supporting-argument-input").focus();
-      }
-      // Eğer destekleyici argüman alanındaysa ve statement alanında değer varsa, formu yayınla
-      else if (event.target.id === "supporting-argument-input" && inputValue.trim() !== "") {
-        handleReleaseClash();
+      // Eğer detaylı formda ise, sırayla alanlar arasında geçiş yap
+      else if (showDetailedForm) {
+        if (event.target.id === "title-vs-input" && titleValue.trim() !== "") {
+          document.getElementById("statement-input").focus();
+        } else if (event.target.id === "statement-input") {
+          document.getElementById("supporting-argument-input").focus();
+        } else if (event.target.id === "supporting-argument-input" && titleValue.trim() !== "") {
+          handleReleaseClash();
+        }
       }
     }
   };
@@ -145,13 +153,14 @@ const ClashFeed = () => {
   const handleStartNewClash = () => {
     setShowDetailedForm(true);
     // İlk kez formu açarken başlıkları güncelle
-    updateSideTitles(inputValue);
+    updateSideTitles(titleValue);
   };
 
   // Clash'i yayınla
   const handleReleaseClash = () => {
     // Burada backend'e veri gönderme işlemleri yapılacak
     console.log({
+      title: titleValue,
       statement: inputValue,
       supportingArgument,
       selectedSide,
@@ -160,6 +169,7 @@ const ClashFeed = () => {
     });
     
     // Formu sıfırla ve kapat
+    setTitleValue("");
     setInputValue("");
     setSupportingArgument("");
     setSelectedSide("A");
@@ -171,6 +181,7 @@ const ClashFeed = () => {
   // Formu temizle ve önceki state'e dön
   const handleClearForm = () => {
     // Tüm değişiklikleri sıfırlayarak ilk forma dön
+    setTitleValue("");
     setInputValue("");
     setSupportingArgument("");
     setSelectedSide("A");
@@ -247,17 +258,17 @@ const ClashFeed = () => {
           <>
             <input
               type="text"
-              placeholder="Drop your bold idea here first!"
+              placeholder="Drop here the title of your bold VS."
               className="w-full mb-2 px-4 py-2 text-secondary text-label placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
-              value={inputValue}
-              onChange={handleInputChange}
+              value={titleValue}
+              onChange={handleTitleChange}
               onKeyPress={handleKeyPress}
             />
             <div className="flex justify-end">
               <button
                 className="px-6 py-2 mt-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto"
-                disabled={!inputValue}
-                style={{ opacity: inputValue ? 1 : 0.75 }}
+                disabled={!titleValue}
+                style={{ opacity: titleValue ? 1 : 0.75 }}
                 onClick={handleStartNewClash}
               >
                 Start A New Clash ⚔️
@@ -268,12 +279,31 @@ const ClashFeed = () => {
           // Detaylı form (butona tıklandıktan sonra) - Yeni tasarım
           <div className="bg-white rounded-lg p-5 shadow-md">
             <div className="space-y-4">
-              {/* Statement */}
+              {/* Title of VS */}
               <div className="flex flex-col">
-                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Bold Statement</label>
+                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Title of VS</label>
                 <div className="relative">
                   <input
-                    id="bold-statement-input"
+                    id="title-vs-input"
+                    type="text"
+                    placeholder="e.g., Metallica vs. Iron Maiden"
+                    className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
+                    value={titleValue}
+                    onChange={handleTitleChange}
+                    onKeyPress={handleKeyPress}
+                  />
+                  <div className="absolute right-2 top-2 flex space-x-1">
+                    <button className="text-secondary hover:text-primary">✨</button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Statement */}
+              <div className="flex flex-col">
+                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Statement</label>
+                <div className="relative">
+                  <input
+                    id="statement-input"
                     type="text"
                     placeholder="Drop your bold idea here"
                     className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
@@ -366,7 +396,7 @@ const ClashFeed = () => {
                 <button
                   className="px-3 py-3 bg-primary text-label text-secondary rounded-md hover:bg-opacity-75"
                   onClick={handleReleaseClash}
-                  disabled={!inputValue}
+                  disabled={!titleValue}
                 >
                   Release This Clash ⚔️
                 </button>
