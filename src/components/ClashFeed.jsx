@@ -10,6 +10,11 @@ const ClashFeed = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [cards, setCards] = useState([1, 2, 3]); // İlk 3 kartı temsil eden dizi
   const loaderRef = useRef(null);
+  
+  // Sort by dropdown için state
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [sortOption, setSortOption] = useState("newest"); // default: newest
+  const sortMenuRef = useRef(null);
 
   // Side A ve Side B için dinamik başlıklar
   const [sideATitle, setSideATitle] = useState("Side A");
@@ -20,6 +25,25 @@ const ClashFeed = () => {
     setInputValue(event.target.value);
     // Input değiştiğinde Side A ve Side B başlıklarını güncelle
     updateSideTitles(event.target.value);
+  };
+
+  // Enter tuşuna basıldığında form geçişini sağlayan fonksiyon
+  const handleKeyPress = (event) => {
+    // Enter tuşuna basıldığında ve input alanında değer varsa
+    if (event.key === "Enter" && inputValue.trim() !== "") {
+      // Eğer basit form gösteriliyorsa detaylı forma geç
+      if (!showDetailedForm) {
+        handleStartNewClash();
+      } 
+      // Eğer detaylı form gösteriliyorsa ve destekleyici argüman alanında değilse, bir sonraki alana geç
+      else if (event.target.id === "bold-statement-input") {
+        document.getElementById("supporting-argument-input").focus();
+      }
+      // Eğer destekleyici argüman alanındaysa ve statement alanında değer varsa, formu yayınla
+      else if (event.target.id === "supporting-argument-input" && inputValue.trim() !== "") {
+        handleReleaseClash();
+      }
+    }
   };
 
   // Supporting argument değiştiğinde çalışacak fonksiyon
@@ -78,6 +102,44 @@ const ClashFeed = () => {
       setSideBTitle("Side B");
     }
   };
+
+  // Sort by dropdown'ı aç/kapat
+  const toggleSortDropdown = () => {
+    setShowSortDropdown(!showSortDropdown);
+  };
+
+  // Sort seçeneğini ayarla
+  const handleSortOptionChange = (option) => {
+    setSortOption(option);
+    setShowSortDropdown(false);
+    
+    // Burada sıralama işlemleri yapılabilir
+    console.log(`Sorting by: ${option}`);
+    
+    // Örnek: "newest" veya "hot" durumuna göre kartları sırala
+    // Gerçek uygulamada bu kısımda API çağrısı yapılabilir
+    if (option === "newest") {
+      // Yeni clash'leri öne getir (örnek)
+      // setCards([...]);
+    } else if (option === "hot") {
+      // Popüler clash'leri öne getir (örnek)
+      // setCards([...]);
+    }
+  };
+
+  // Dropdown menu dışına tıklandığında kapanması için
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(event.target)) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [sortMenuRef]);
 
   // "Start A New Clash" butonuna tıklandığında detaylı formu göster
   const handleStartNewClash = () => {
@@ -189,6 +251,7 @@ const ClashFeed = () => {
               className="w-full mb-2 px-4 py-2 text-secondary text-label placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
               value={inputValue}
               onChange={handleInputChange}
+              onKeyPress={handleKeyPress}
             />
             <div className="flex justify-end">
               <button
@@ -210,11 +273,13 @@ const ClashFeed = () => {
                 <label className="text-label text-secondary mt-3 mb-1 opacity-75">Bold Statement</label>
                 <div className="relative">
                   <input
+                    id="bold-statement-input"
                     type="text"
                     placeholder="Drop your bold idea here"
                     className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
                     value={inputValue}
                     onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
                   />
                   <div className="absolute right-2 top-2 flex space-x-1">
                     <button className="text-secondary hover:text-primary">✨</button>
@@ -227,11 +292,13 @@ const ClashFeed = () => {
                 <label className="text-label text-secondary mt-3 mb-1 opacity-75">Supporting Argument</label>
                 <div className="relative">
                   <input
+                    id="supporting-argument-input"
                     type="text"
                     placeholder="It is optional. Need help? Ask AI to complete it"
                     className="w-full px-4 py-2 text-secondary text-label border-b border-muted bg-white rounded-md focus:outline-none"
                     value={supportingArgument}
                     onChange={handleSupportingArgChange}
+                    onKeyPress={handleKeyPress}
                   />
                   <div className="absolute right-2 top-2 flex space-x-1">
                     <button className="text-secondary hover:text-primary">✨</button>
@@ -312,9 +379,37 @@ const ClashFeed = () => {
       {/* Highlighted Clashes Bölümü */}
       <div className="flex items-center justify-between sm:px-10 px-6 py-1 mb-1">
         <h3 className="text-body text-secondary font-bold">Highlighted Clashes</h3>
-        <button className="px-3 py-2 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto">
-          Sort by 📶
-        </button>
+        
+        {/* Sort By Dropdown */}
+        <div className="relative" ref={sortMenuRef}>
+          <button 
+            className="px-3 py-2 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto flex items-center"
+            onClick={toggleSortDropdown}
+          >
+            <span>Sort by</span>
+            <span className="ml-1">{sortOption === "newest" ? "⚡" : "💥"}</span>
+          </button>
+          
+          {/* Dropdown Menu */}
+          {showSortDropdown && (
+            <div className="absolute right-0 mt-1 py-2 w-48 bg-white rounded-md shadow-lg z-20">
+              <button 
+                className={`flex w-full items-center px-4 py-2 text-sm hover:bg-muted25 ${sortOption === "newest" ? "text-mutedDark" : "text-secondary"}`}
+                onClick={() => handleSortOptionChange("newest")}
+              >
+                <span className="mr-2">⚡</span>
+                <span>New Clashes first</span>
+              </button>
+              <button 
+                className={`flex w-full items-center px-4 py-2 text-sm hover:bg-muted25 ${sortOption === "hot" ? "text-mutedDark" : "text-secondary"}`}
+                onClick={() => handleSortOptionChange("hot")}
+              >
+                <span className="mr-2">💥</span>
+                <span>Hot Clashes first</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Clash Cards */}

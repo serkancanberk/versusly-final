@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 export default function ClashCard() {
   const messages = [
@@ -9,6 +9,9 @@ export default function ClashCard() {
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fade, setFade] = useState(true);
+  // Dropdown menüsü için state
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -21,6 +24,33 @@ export default function ClashCard() {
 
     return () => clearInterval(interval);
   }, []);
+
+  // Dropdown dışına tıklandığında menüyü kapatma
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [dropdownRef]);
+
+  // Dropdown menüsünü aç/kapat
+  const toggleDropdown = () => {
+    setShowDropdown(!showDropdown);
+  };
+
+  // Report işlemi
+  const handleReport = () => {
+    console.log("Clash reported");
+    setShowDropdown(false);
+    // Burada gerçek bir raporlama işlemi yapılabilir
+    alert("Clash has been reported");
+  };
 
   return (
     <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300">
@@ -38,7 +68,28 @@ export default function ClashCard() {
             <span className="text-caption text-mutedDark">3h ago</span>
           </div>
         </div>
-        <button className="text-xl text-secondary hover:text-mutedDark">⋮</button>
+        {/* Üç nokta menüsü */}
+        <div className="relative" ref={dropdownRef}>
+          <button 
+            className="text-xl text-secondary hover:text-mutedDark"
+            onClick={toggleDropdown}
+          >
+            ⋮
+          </button>
+          
+          {/* Dropdown Menü */}
+          {showDropdown && (
+            <div className="absolute right-0 mt-1 py-2 w-40 bg-white rounded-md shadow-lg z-20">
+              <button 
+                className="flex w-full items-center px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                onClick={handleReport}
+              >
+                <span className="mr-2">⚠️</span>
+                <span>Report</span>
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Görsel */}
