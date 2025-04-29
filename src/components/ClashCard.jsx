@@ -7,11 +7,33 @@ export default function ClashCard() {
     { icon: "🧨", text: "Time has been ticking: Last 12h 23m to join." }
   ];
 
+  const reactions = [
+    { emoji: "👑", label: "Nailed It", description: "I fully agree" },
+    { emoji: "🤝", label: "Fair Point", description: "Makes sense" },
+    { emoji: "🤷", label: "Can't Decide", description: "Not sure about this" },
+    { emoji: "🙄", label: "Really?", description: "Not buying it" },
+    { emoji: "🗑️", label: "Try Again", description: "Completely disagree" }
+  ];
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fade, setFade] = useState(true);
   // Dropdown menüsü için state
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
+  
+  // Menu yönetimi için state
+  const [activeMenu, setActiveMenu] = useState(null); // "react", "share", veya null
+  const [copied, setCopied] = useState(false);
+  const menuTimeoutRef = useRef(null);
+  const copyTimeoutRef = useRef(null);
+  const menuRefs = useRef({
+    react: useRef(null),
+    share: useRef(null)
+  });
+  
+  // Örnek clash URL
+  const clashUrl = "https://versusly.co/c/abc123";
+  const [selectedReaction, setSelectedReaction] = useState(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -25,23 +47,111 @@ export default function ClashCard() {
     return () => clearInterval(interval);
   }, []);
 
-  // Dropdown dışına tıklandığında menüyü kapatma
+  // Click ve key event handler'ları
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setShowDropdown(false);
       }
+      
+      // Tüm menü referansları için kontrol
+      const insideReactMenu = menuRefs.current.react.current && 
+                             menuRefs.current.react.current.contains(event.target);
+      const insideShareMenu = menuRefs.current.share.current && 
+                             menuRefs.current.share.current.contains(event.target);
+      
+      if (!insideReactMenu && !insideShareMenu) {
+        setActiveMenu(null);
+      }
+    };
+
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape') {
+        setActiveMenu(null);
+        setShowDropdown(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscapeKey);
+    
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscapeKey);
+      
+      // Timeout'ları temizle
+      if (menuTimeoutRef.current) {
+        clearTimeout(menuTimeoutRef.current);
+      }
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
     };
-  }, [dropdownRef]);
+  }, []);
 
   // Dropdown menüsünü aç/kapat
   const toggleDropdown = () => {
     setShowDropdown(!showDropdown);
+  };
+
+  // React butonuna hover
+  const handleReactButtonHover = () => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+    }
+    
+    menuTimeoutRef.current = setTimeout(() => {
+      setActiveMenu("react");
+    }, 300); // 300ms gecikme ile menüyü aç
+  };
+
+  // Share butonuna hover
+  const handleShareButtonHover = () => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+    }
+    
+    menuTimeoutRef.current = setTimeout(() => {
+      setActiveMenu("share");
+    }, 100); // 100ms gecikme ile menüyü aç (daha hızlı)
+  };
+
+  // Herhangi bir butondan mouse ayrıldığında
+  const handleButtonMouseLeave = () => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+      menuTimeoutRef.current = null;
+    }
+    
+    // Butondan çıkınca menü kapanmasın, kullanıcı menüye gidebilir
+  };
+
+  // URL'yi kopyalama işlemi
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(clashUrl)
+      .then(() => {
+        setCopied(true);
+        
+        // 2 saniye sonra copied state'ini sıfırla
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopied(false);
+        }, 2000);
+      })
+      .catch(err => {
+        console.error('Failed to copy URL: ', err);
+      });
+  };
+  
+  // Reaksiyon seçme işlemi
+  const handleReactionSelect = (reaction) => {
+    setSelectedReaction(reaction);
+    setActiveMenu(null);
+    // Burada seçilen reaksiyonu backend'e gönderme işlemi yapılabilir
+    console.log(`Selected reaction: ${reaction.emoji} - ${reaction.label}`);
   };
 
   // Report işlemi
@@ -134,14 +244,77 @@ export default function ClashCard() {
 
       {/* Footer Aksiyonları */}
       <div className="flex items-center justify-between p-4 pt-0">
-        <button className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark">
-          <span>👊</span>
-          <span>React</span>
-        </button>
-        <button className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark">
-          <span>🔗</span>
-          <span>Share</span>
-        </button>
+        {/* React Button ve Menüsü */}
+        <div className="relative" ref={menuRefs.current.react}>
+          <button 
+            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1"
+            onMouseEnter={handleReactButtonHover}
+            onMouseLeave={handleButtonMouseLeave}
+          >
+            <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
+            <span>{selectedReaction ? selectedReaction.label : "React"}</span>
+          </button>
+          
+          {/* Reaction Menu */}
+          {activeMenu === "react" && (
+            <div 
+              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
+              onMouseEnter={() => setActiveMenu("react")}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
+              <div className="flex gap-3 justify-between">
+                {reactions.map((reaction, index) => (
+                  <button
+                    key={index}
+                    className="flex flex-col items-center justify-center hover:scale-110 transition-transform p-1 hover:bg-muted25 rounded-lg"
+                    onClick={() => handleReactionSelect(reaction)}
+                    title={reaction.description}
+                  >
+                    <span className="text-xl mb-1">{reaction.emoji}</span>
+                    <span className="text-xs text-mutedDark whitespace-nowrap">{reaction.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        
+        {/* Share Button ve Tooltip */}
+        <div className="relative" ref={menuRefs.current.share}>
+          <button 
+            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1" 
+            onMouseEnter={handleShareButtonHover}
+            onMouseLeave={handleButtonMouseLeave}
+            onClick={copyToClipboard}
+          >
+            <span>🔗</span>
+            <span>Copy Link</span>
+          </button>
+          
+          {/* Share Tooltip - React menüsü ile aynı stil */}
+          {activeMenu === "share" && (
+            <div 
+              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
+              onMouseEnter={() => setActiveMenu("share")}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
+              <div className="flex items-center space-x-2">
+                {copied ? (
+                  <div className="flex items-center space-x-1 hover:scale-105 transition-transform">
+                    <span className="text-xl">✅</span>
+                    <span className="text-xs text-secondary whitespace-nowrap font-medium">Link Copied!</span>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-start hover:scale-105 transition-transform">
+                    <span className="text-sm text-secondary truncate max-w-36">{clashUrl}</span>
+                    <span className="text-xs text-mutedDark">Tap to copy</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+        
         <button className="px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
           💀 Check This
         </button>
