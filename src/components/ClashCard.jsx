@@ -2,9 +2,9 @@ import React, { useState, useEffect } from "react";
 
 export default function ClashCard() {
   const messages = [
-    { icon: "⚡", text: "New Clash" },
+    { icon: "⚡", text: "This is a New Clash" },
     { icon: "🤺", text: "No arguments yet – strike the first one." },
-    { icon: "🧨", text: "Ticking clash: 12h 23m left" }
+    { icon: "🧨", text: "Time has been ticking: Last 12h 23m to join." }
   ];
 
   const [currentIndex, setCurrentIndex] = useState(0);

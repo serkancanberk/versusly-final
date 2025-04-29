@@ -18,7 +18,7 @@ const MainFeed = () => {
         {/* Navigation Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[18%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-            <NavigationSidebar />
+          <NavigationSidebar />
           </div>
         </div>
 
@@ -30,7 +30,7 @@ const MainFeed = () => {
         {/* Right Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[27%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-            <RightSidebar />
+          <RightSidebar />
           </div>
         </div>
       </div>
