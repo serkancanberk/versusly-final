@@ -21,6 +21,29 @@ const ClashFeed = () => {
   const [sideATitle, setSideATitle] = useState("Side A");
   const [sideBTitle, setSideBTitle] = useState("Side B");
 
+  // Random VS örnekleri - Gerçek bir backend entegrasyonu için daha sonra güncellenecek
+  const randomVsExamples = [
+    "Netflix vs YouTube",
+    "Instagram vs TikTok",
+    "Pizza vs Burger",
+    "Apple vs Samsung",
+    "Football vs Basketball",
+    "Coffee vs Tea",
+    "Summer vs Winter",
+    "Movies vs Books",
+    "PlayStation vs Xbox",
+    "Android vs iOS"
+  ];
+
+  // Rastgele bir VS çekme fonksiyonu
+  const getRandomVs = () => {
+    const randomIndex = Math.floor(Math.random() * randomVsExamples.length);
+    const randomVs = randomVsExamples[randomIndex];
+    setTitleValue(randomVs);
+    // Title değiştiğinde Side A ve Side B başlıklarını güncelle
+    updateSideTitles(randomVs);
+  };
+
   // Input alanı değiştiğinde state'i güncelleyen fonksiyon
   const handleInputChange = (event) => {
     setInputValue(event.target.value);
@@ -256,14 +279,23 @@ const ClashFeed = () => {
         {!showDetailedForm ? (
           // Basit form (ilk görünen)
           <>
-            <input
-              type="text"
-              placeholder="Drop here the title of your bold VS."
-              className="w-full mb-2 px-4 py-2 text-secondary text-label placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
-              value={titleValue}
-              onChange={handleTitleChange}
-              onKeyPress={handleKeyPress}
-            />
+            <div className="relative w-full">
+              <input
+                type="text"
+                placeholder="What's your VS? Let's start with your own or roll the dice!"
+                className="w-full mb-2 px-4 py-2 text-secondary text-label placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
+                value={titleValue}
+                onChange={handleTitleChange}
+                onKeyPress={handleKeyPress}
+              />
+<button 
+  className="absolute right-3 top-0 h-full flex items-center text-body hover:scale-110 transition-transform"
+  onClick={getRandomVs}
+  title="Get a random VS topic"
+>
+  🎲
+</button>
+           </div>
             <div className="flex justify-end">
               <button
                 className="px-6 py-2 mt-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto"
@@ -293,14 +325,20 @@ const ClashFeed = () => {
                     onKeyPress={handleKeyPress}
                   />
                   <div className="absolute right-2 top-2 flex space-x-1">
-                    <button className="text-secondary hover:text-primary">✨</button>
+                    <button 
+                      className="text-body hover:scale-110 transition-transform leading-none"
+                      onClick={getRandomVs}
+                      title="Get a random VS topic"
+                    >
+                      🎲
+                    </button>
                   </div>
                 </div>
               </div>
               
               {/* Statement */}
               <div className="flex flex-col">
-                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Statement</label>
+                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Your Bold Statement</label>
                 <div className="relative">
                   <input
                     id="statement-input"
