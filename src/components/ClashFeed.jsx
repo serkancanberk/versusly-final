@@ -3,14 +3,65 @@ import ClashCard from "./ClashCard";
 
 const ClashFeed = () => {
   // State değişkenleri
-  const [inputValue, setInputValue] = useState("");
+  const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
   const [supportingArgument, setSupportingArgument] = useState("");
   const [selectedSide, setSelectedSide] = useState("A");
   const [showDetailedForm, setShowDetailedForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [cards, setCards] = useState([1, 2, 3]); // İlk 3 kartı temsil eden dizi
+  const [clashList, setClashList] = useState([]);
+  const [offset, setOffset] = useState(0);
+  const offsetRef = useRef(0);
+  const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
+
+  // Fetch clashes with pagination and sort option
+  const fetchClashes = async () => {
+    setIsLoading(true);
+    try {
+      // Add a short delay to make loading feel smoother
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ms delay
+
+      const res = await fetch(
+        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}`
+      );
+      const data = await res.json();
+      if (data.length === 0) {
+        setHasMore(false);
+      } else {
+        setClashList(prev => [...prev, ...data]);
+        offsetRef.current += 5;
+      }
+    } catch (err) {
+      console.error("Error fetching clashes:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // IntersectionObserver for lazy loading (refactored to avoid repeated triggering)
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMore && !isLoading) {
+          fetchClashes();
+        }
+      },
+      { threshold: 1.0 }
+    );
+    const currentLoader = loaderRef.current;
+    if (currentLoader) observer.observe(currentLoader);
+    return () => {
+      if (currentLoader) observer.unobserve(currentLoader);
+    };
+  }, [hasMore, isLoading]);
+
+  // Initial fetch
+  useEffect(() => {
+    offsetRef.current = 0;
+    // eslint-disable-next-line
+  }, []);
   
   // Sort by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -46,7 +97,7 @@ const ClashFeed = () => {
 
   // Input alanı değiştiğinde state'i güncelleyen fonksiyon
   const handleInputChange = (event) => {
-    setInputValue(event.target.value);
+    setStatement(event.target.value);
   };
 
   // Title alanı değiştiğinde state'i güncelleyen fonksiyon
@@ -143,19 +194,10 @@ const ClashFeed = () => {
   const handleSortOptionChange = (option) => {
     setSortOption(option);
     setShowSortDropdown(false);
-    
-    // Burada sıralama işlemleri yapılabilir
-    console.log(`Sorting by: ${option}`);
-    
-    // Örnek: "newest" veya "hot" durumuna göre kartları sırala
-    // Gerçek uygulamada bu kısımda API çağrısı yapılabilir
-    if (option === "newest") {
-      // Yeni clash'leri öne getir (örnek)
-      // setCards([...]);
-    } else if (option === "hot") {
-      // Popüler clash'leri öne getir (örnek)
-      // setCards([...]);
-    }
+    setClashList([]);
+    setHasMore(true);
+    offsetRef.current = 0;
+    fetchClashes();
   };
 
   // Dropdown menu dışına tıklandığında kapanması için
@@ -180,32 +222,55 @@ const ClashFeed = () => {
   };
 
   // Clash'i yayınla
-  const handleReleaseClash = () => {
-    // Burada backend'e veri gönderme işlemleri yapılacak
-    console.log({
-      title: titleValue,
-      statement: inputValue,
-      supportingArgument,
-      selectedSide,
-      sideATitle,
-      sideBTitle
-    });
-    
-    // Formu sıfırla ve kapat
-    setTitleValue("");
-    setInputValue("");
-    setSupportingArgument("");
-    setSelectedSide("A");
-    setSideATitle("Side A");
-    setSideBTitle("Side B");
-    setShowDetailedForm(false);
+  const handleReleaseClash = async () => {
+    const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    const newClash = {
+      vs_title: titleValue,
+      vs_statement: statement,
+      vs_argument: supportingArgument,
+      creator: null,
+      status: "active",
+      duration: 24,
+      expires_at
+    };
+
+    try {
+      setIsLoading(true);
+      const response = await fetch('http://localhost:8080/api/clashes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newClash)
+      });
+
+      if (response.ok) {
+        const created = await response.json();
+        // Yeni clash'i en üste ekle
+        setClashList(prev => [created, ...prev]);
+        // Formu sıfırla
+        setTitleValue("");
+        setStatement("");
+        setSupportingArgument("");
+        setSelectedSide("A");
+        setSideATitle("Side A");
+        setSideBTitle("Side B");
+        setShowDetailedForm(false);
+      } else {
+        console.error("Failed to create clash:", await response.text());
+      }
+    } catch (err) {
+      console.error("Error creating clash:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Formu temizle ve önceki state'e dön
   const handleClearForm = () => {
     // Tüm değişiklikleri sıfırlayarak ilk forma dön
     setTitleValue("");
-    setInputValue("");
+    setStatement("");
     setSupportingArgument("");
     setSelectedSide("A");
     setSideATitle("Side A");
@@ -226,52 +291,14 @@ const ClashFeed = () => {
     }
   };
 
-  // Intersection Observer ile lazy loading
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const target = entries[0];
-        if (target.isIntersecting && !isLoading) {
-          loadMoreCards();
-        }
-      },
-      {
-        root: null,
-        rootMargin: "20px",
-        threshold: 0.1,
-      }
-    );
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-
-    return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
-    };
-  }, [isLoading, cards]);
-
-  // Daha fazla kart yükleme fonksiyonu
-  const loadMoreCards = () => {
-    setIsLoading(true);
-    
-    // Yükleme simülasyonu (gerçek bir API çağrısı ile değiştirilmeli)
-    setTimeout(() => {
-      // Mevcut kartlar + 2 yeni kart ekle
-      setCards((prevCards) => [...prevCards, prevCards.length + 1, prevCards.length + 2]);
-      setIsLoading(false);
-    }, 1500); // 1.5 saniye gecikme simülasyonu
-  };
 
   // Generate a mock bold statement based on the title
   const generateMockStatement = () => {
     const title = titleValue.toLowerCase();
     if (title.includes("cats") && title.includes("dogs")) {
-      setInputValue("Cats would totally win a presidential election.");
+      setStatement("Cats would totally win a presidential election.");
     } else if (title.includes("netflix") && title.includes("youtube")) {
-      setInputValue("Netflix has better storytelling than YouTube ever will.");
+      setStatement("Netflix has better storytelling than YouTube ever will.");
     } else {
       const examples = [
         "This side has the upper hand, no doubt.",
@@ -279,7 +306,7 @@ const ClashFeed = () => {
         "Unpopular opinion — but true."
       ];
       const randomIndex = Math.floor(Math.random() * examples.length);
-      setInputValue(examples[randomIndex]);
+      setStatement(examples[randomIndex]);
     }
   };
 
@@ -412,7 +439,7 @@ const ClashFeed = () => {
                     type="text"
                     placeholder="Drop your bold idea here"
                     className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
-                    value={inputValue}
+                    value={statement}
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                   />
@@ -458,8 +485,8 @@ const ClashFeed = () => {
                 <button
                   className="px-3 py-3 bg-primary text-label text-secondary rounded-md hover:bg-opacity-75"
                   onClick={handleReleaseClash}
-                  disabled={!titleValue.trim() || !inputValue.trim()}
-                  style={{ opacity: titleValue.trim() && inputValue.trim() ? 1 : 0.75 }}
+                  disabled={!titleValue.trim() || !statement.trim()}
+                  style={{ opacity: titleValue.trim() && statement.trim() ? 1 : 0.75 }}
                 >
                   Release This Clash ⚔️
                 </button>
@@ -507,8 +534,16 @@ const ClashFeed = () => {
 
       {/* Clash Cards */}
       <div className="space-y-6 sm:space-y-6 px-6 sm:px-10 pt-2">
-        {cards.map((card, index) => (
-          <ClashCard key={index} />
+        {clashList.map((clash) => (
+          <ClashCard
+            key={clash._id}
+            title={clash.vs_title}
+            statement={clash.vs_statement}
+            argument={clash.vs_argument}
+            argumentCount={clash.arguments?.length || 0}
+            reactions={clash.reactions}
+            expires_at={clash.expires_at}
+          />
         ))}
         
         {/* Loader Bölümü */}
@@ -517,15 +552,18 @@ const ClashFeed = () => {
           className="py-8 flex justify-center items-center"
         >
           {isLoading ? (
-            <div className="flex flex-col items-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-secondary mb-2"></div>
-              <p className="text-sm text-secondary mb-4">Loading more clashes...</p>
+            <div className="flex items-center space-x-2">
+              <svg className="animate-spin h-5 w-5 text-secondary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+              <p className="text-sm text-secondary py-2">Loading more clashes...</p>
             </div>
-          ) : cards.length >= 9 ? (
+          ) : clashList.length === 0 ? (
+            <p className="text-sm text-secondary py-2">No clashes yet. Be the first to start one!</p>
+          ) : !hasMore ? (
             <p className="text-sm text-secondary py-2">You've caught up with all clashes!</p>
-          ) : (
-            <div className="h-8 opacity-0">Loader placeholder</div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

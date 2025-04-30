@@ -5,8 +5,18 @@ const router = express.Router();
 // Tüm Clash'leri getirme
 router.get('/', async (req, res) => {
   try {
-    const clashes = await Clash.find(); // Veritabanından tüm clash'leri alıyoruz
-    res.json(clashes); // Clash'leri JSON formatında döndürüyoruz
+    // Sorting and pagination logic
+    const sortField = (req.query.sort || '-created_at').replace('-', '');
+    const sortOrder = (req.query.sort || '-created_at').startsWith('-') ? -1 : 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const clashes = await Clash.find()
+      .sort({ [sortField]: sortOrder })
+      .skip(offset)
+      .limit(limit);
+
+    res.json(clashes);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -39,8 +49,6 @@ router.post('/', async (req, res) => {
     vs_statement,
     vs_argument,
     creator: creator || null, // Eğer creator belirtilmemişse null olarak bırakıyoruz
-    created_at: new Date(),
-    updated_at: new Date(),
     votes: [],
     status: "active",
     expires_at: new Date(Date.now() + duration * 60 * 60 * 1000), // Süreyi saat olarak alıyoruz
@@ -67,7 +75,6 @@ router.put('/:id', async (req, res) => {
     clash.vs_title = req.body.vs_title || clash.vs_title;
     clash.vs_statement = req.body.vs_statement || clash.vs_statement;
     clash.vs_argument = req.body.vs_argument || clash.vs_argument;
-    clash.updated_at = new Date();
 
     const updatedClash = await clash.save();
     res.json(updatedClash); // Güncellenmiş Clash'i döndürüyoruz

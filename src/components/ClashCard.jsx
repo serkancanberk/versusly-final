@@ -1,19 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 
-export default function ClashCard() {
+export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at }) {
+  const mockReactions = [
+    { emoji: "👑", label: "Nailed It", description: "Fully agree" },
+    { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
+    { emoji: "🤷", label: "Can’t Decide", description: "Neutral stance" },
+    { emoji: "🙄", label: "Really?", description: "Skeptical" },
+    { emoji: "🗑️", label: "Try Again", description: "Not convinced" }
+  ];
+  const safeReactions = Array.isArray(reactions) && reactions.length > 0 ? reactions : mockReactions;
   const messages = [
     { icon: "⚡", text: "This is a New Clash" },
     { icon: "🤺", text: "No arguments yet – strike the first one." },
     { icon: "🧨", text: "Time has been ticking: Last 12h 23m to join." }
   ];
 
-  const reactions = [
-    { emoji: "👑", label: "Nailed It", description: "I fully agree" },
-    { emoji: "🤝", label: "Fair Point", description: "Makes sense" },
-    { emoji: "🤷", label: "Can't Decide", description: "Not sure about this" },
-    { emoji: "🙄", label: "Really?", description: "Not buying it" },
-    { emoji: "🗑️", label: "Try Again", description: "Completely disagree" }
-  ];
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const [fade, setFade] = useState(true);
@@ -35,11 +36,6 @@ export default function ClashCard() {
   // Örnek clash URL
   const clashUrl = "https://versusly.co/c/abc123";
   const [selectedReaction, setSelectedReaction] = useState(null);
-  const argumentCount = 0;
-
-  // New static info block data
-  const clashStatus = "New Clash";
-  const timeRemaining = "Last 12h 23m to join.";
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -240,25 +236,36 @@ export default function ClashCard() {
         {/* Küçük başlık */}
         <div className="flex items-center space-x-2 text-label text-secondary">
           <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
-          <span className="text-body font-bold">Coffee vs. Tea</span>
+          <span className="text-body font-bold">{title}</span>
         </div>
-        {/* Clash static info block */}
+        {/* Clash info block */}
         {(() => {
-          // MOCK: set clashStatus here for demo
-          const clashStatus = "New Clash"; // "Hot Clash", "Finished Clash"
-          let info = "";
-          let timePart = "";
-          if (clashStatus === "New Clash") {
-            info = "⚡ New Clash – ";
-            timePart = "Last 12h 23m to join.";
-          } else if (clashStatus === "Hot Clash") {
-            info = "💥 Hot Clash – ";
-            timePart = "Last 6h 19m to join.";
-          } else if (clashStatus === "Finished Clash") {
-            info = "🚨 Finished Clash – ";
-            timePart = "Time's up to join.";
+          const expires = new Date(expires_at);
+          if (!expires_at || !(expires instanceof Date) || isNaN(expires.getTime())) {
+            return (
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2 mt-0.5">
+                <span className="mr-1">⚠️</span>
+                <span>Invalid expiration date</span>
+              </div>
+            );
           }
-          if (!info) return null;
+
+          const now = new Date();
+          let timeDiffMs = expires - now;
+          if (timeDiffMs < 0) timeDiffMs = 0;
+          const timeDiffH = Math.floor(timeDiffMs / 1000 / 60 / 60);
+          const timeDiffM = Math.floor((timeDiffMs / 1000 / 60) % 60);
+
+          let info = "⚡ New Clash – ";
+          let timePart = `Last ${timeDiffH}h ${timeDiffM}m to join.`;
+
+          if (timeDiffMs <= 0) {
+            info = "⏰ Finished Clash – ";
+            timePart = "Time's up to join.";
+          } else if (timeDiffH < 21) {
+            info = "💥 Hot Clash – ";
+            timePart = `Last ${timeDiffH}h ${timeDiffM}m to join.`;
+          }
 
           let bgClass = "bg-muted25";
           let textClass = "text-secondary";
@@ -277,8 +284,13 @@ export default function ClashCard() {
         {/* Removed second redundant static info block */}
 
         {/* Statement ve Argument */}
-        <h2 className="text-subheading text-secondary mb-0">Statement</h2>
-        <p className="text-body text-secondary mt-1">Argument... more</p>
+        <h2 className="text-subheading text-secondary mt-1">{statement}</h2>
+        {argument && (
+          <>
+
+            <h3 className="text-body text-secondary mt-1">{argument}</h3>
+          </>
+        )}
 
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
@@ -308,7 +320,7 @@ export default function ClashCard() {
               onMouseLeave={() => setActiveMenu(null)}
             >
               <div className="flex gap-3 justify-between">
-                {reactions.map((reaction, index) => (
+                {safeReactions.map((reaction, index) => (
                   <button
                     key={index}
                     className="flex flex-col items-center justify-center hover:scale-110 transition-transform p-1 hover:bg-muted25 rounded-lg"

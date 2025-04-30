@@ -11,8 +11,6 @@ const clashSchema = new mongoose.Schema({
   vs_statement: String,
   vs_argument: String,
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
-  created_at: { type: Date, default: Date.now },
-  updated_at: { type: Date, default: Date.now },
   votes: [],
   status: { type: String, default: 'active' },
   expires_at: Date,
@@ -25,6 +23,8 @@ const clashSchema = new mongoose.Schema({
     really: { type: Number, default: 0 },
     try_again: { type: Number, default: 0 }
   }
-});
+}, { timestamps: true });
+
+clashSchema.index({ created_at: -1 });
 
 module.exports = mongoose.model('Clash', clashSchema);
