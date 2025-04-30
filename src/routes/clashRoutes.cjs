@@ -93,3 +93,58 @@ router.delete('/:id', async (req, res) => {
 });
 
 module.exports = router; // clashRoutes'u dışarıya aktarıyoruz
+
+
+// Yeni bir argüman ekleme
+router.post('/:id/argument', async (req, res) => {
+  const { text, author } = req.body;
+  if (!text) {
+    return res.status(400).json({ message: "Argument text is required" });
+  }
+  try {
+    const clash = await Clash.findById(req.params.id);
+    if (!clash) {
+      return res.status(404).json({ message: "Clash not found" });
+    }
+    // Argümanlar dizisi yoksa başlat
+    if (!Array.isArray(clash.arguments)) {
+      clash.arguments = [];
+    }
+    clash.arguments.push({
+      text,
+      author: author || null,
+      created_at: new Date()
+    });
+    await clash.save();
+    res.json(clash.arguments);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Reaksiyon ekleme
+router.post('/:id/react', async (req, res) => {
+  const { reactionType } = req.body;
+  const allowedReactions = ["nailed_it", "fair_point", "neutral", "really", "try_again"];
+  if (!allowedReactions.includes(reactionType)) {
+    return res.status(400).json({ message: "Invalid reactionType" });
+  }
+  try {
+    const clash = await Clash.findById(req.params.id);
+    if (!clash) {
+      return res.status(404).json({ message: "Clash not found" });
+    }
+    // Reactions objesi yoksa başlat
+    if (!clash.reactions) {
+      clash.reactions = {};
+      allowedReactions.forEach(type => {
+        clash.reactions[type] = 0;
+      });
+    }
+    clash.reactions[reactionType] = (clash.reactions[reactionType] || 0) + 1;
+    await clash.save();
+    res.json(clash.reactions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});

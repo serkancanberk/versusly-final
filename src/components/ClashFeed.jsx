@@ -265,6 +265,24 @@ const ClashFeed = () => {
     }, 1500); // 1.5 saniye gecikme simülasyonu
   };
 
+  // Generate a mock bold statement based on the title
+  const generateMockStatement = () => {
+    const title = titleValue.toLowerCase();
+    if (title.includes("cats") && title.includes("dogs")) {
+      setInputValue("Cats would totally win a presidential election.");
+    } else if (title.includes("netflix") && title.includes("youtube")) {
+      setInputValue("Netflix has better storytelling than YouTube ever will.");
+    } else {
+      const examples = [
+        "This side has the upper hand, no doubt.",
+        "Clearly a winner here.",
+        "Unpopular opinion — but true."
+      ];
+      const randomIndex = Math.floor(Math.random() * examples.length);
+      setInputValue(examples[randomIndex]);
+    }
+  };
+
   return (
     <div className="w-full h-full">
       {/* Başlık ve Clash yaratma alanı */}
@@ -335,45 +353,7 @@ const ClashFeed = () => {
                   </div>
                 </div>
               </div>
-              
-              {/* Statement */}
-              <div className="flex flex-col">
-                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Your Bold Statement</label>
-                <div className="relative">
-                  <input
-                    id="statement-input"
-                    type="text"
-                    placeholder="Drop your bold idea here"
-                    className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyPress={handleKeyPress}
-                  />
-                  <div className="absolute right-2 top-2 flex space-x-1">
-                    <button className="text-secondary hover:text-primary">✨</button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Argument */}
-              <div className="flex flex-col">
-                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Supporting Argument</label>
-                <div className="relative">
-                  <input
-                    id="supporting-argument-input"
-                    type="text"
-                    placeholder="It is optional. Need help? Ask AI to complete it"
-                    className="w-full px-4 py-2 text-secondary text-label border-b border-muted bg-white rounded-md focus:outline-none"
-                    value={supportingArgument}
-                    onChange={handleSupportingArgChange}
-                    onKeyPress={handleKeyPress}
-                  />
-                  <div className="absolute right-2 top-2 flex space-x-1">
-                    <button className="text-secondary hover:text-primary">✨</button>
-                  </div>
-                </div>
-              </div>
-              
+
               {/* Choose Your Side - İçerikle güncellenmiş başlıklar */}
               <div>
                 <label className="text-label text-secondary mt-3 mb-3 opacity-75">Choose Your Side</label>
@@ -422,7 +402,51 @@ const ClashFeed = () => {
                   </button>
                 </div>
               </div>
-              
+
+              {/* Statement */}
+              <div className="flex flex-col">
+                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Your Bold Statement</label>
+                <div className="relative">
+                  <input
+                    id="statement-input"
+                    type="text"
+                    placeholder="Drop your bold idea here"
+                    className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onKeyPress={handleKeyPress}
+                  />
+                  <div className="absolute right-2 top-2 flex space-x-1">
+                    <button
+                      className="text-secondary hover:text-primary"
+                      onClick={generateMockStatement}
+                      title="Generate a bold statement"
+                    >
+                      ✨
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Argument */}
+              <div className="flex flex-col">
+                <label className="text-label text-secondary mt-3 mb-1 opacity-75">Supporting Argument</label>
+                <div className="relative">
+                  <input
+                    id="supporting-argument-input"
+                    type="text"
+                    placeholder="It is optional. Need help? Ask AI to complete it"
+                    className="w-full px-4 py-2 text-secondary text-label border-b border-muted bg-white rounded-md focus:outline-none"
+                    value={supportingArgument}
+                    onChange={handleSupportingArgChange}
+                    onKeyPress={handleKeyPress}
+                  />
+                  <div className="absolute right-2 top-2 flex space-x-1">
+                    <button className="text-secondary hover:text-primary">✨</button>
+                  </div>
+                </div>
+              </div>
+
               {/* Buttons */}
               <div className="flex justify-between items-center pt-3">
                 <button
@@ -434,7 +458,8 @@ const ClashFeed = () => {
                 <button
                   className="px-3 py-3 bg-primary text-label text-secondary rounded-md hover:bg-opacity-75"
                   onClick={handleReleaseClash}
-                  disabled={!titleValue}
+                  disabled={!titleValue.trim() || !inputValue.trim()}
+                  style={{ opacity: titleValue.trim() && inputValue.trim() ? 1 : 0.75 }}
                 >
                   Release This Clash ⚔️
                 </button>

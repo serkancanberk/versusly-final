@@ -22,18 +22,24 @@ export default function ClashCard() {
   const dropdownRef = useRef(null);
   
   // Menu yönetimi için state
-  const [activeMenu, setActiveMenu] = useState(null); // "react", "share", veya null
+  const [activeMenu, setActiveMenu] = useState(null); // "react", "share", "arguments" veya null
   const [copied, setCopied] = useState(false);
   const menuTimeoutRef = useRef(null);
   const copyTimeoutRef = useRef(null);
   const menuRefs = useRef({
     react: useRef(null),
-    share: useRef(null)
+    share: useRef(null),
+    arguments: useRef(null)
   });
   
   // Örnek clash URL
   const clashUrl = "https://versusly.co/c/abc123";
   const [selectedReaction, setSelectedReaction] = useState(null);
+  const argumentCount = 0;
+
+  // New static info block data
+  const clashStatus = "New Clash";
+  const timeRemaining = "Last 12h 23m to join.";
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -59,8 +65,10 @@ export default function ClashCard() {
                              menuRefs.current.react.current.contains(event.target);
       const insideShareMenu = menuRefs.current.share.current && 
                              menuRefs.current.share.current.contains(event.target);
+      const insideArgumentsMenu = menuRefs.current.arguments.current &&
+                                  menuRefs.current.arguments.current.contains(event.target);
       
-      if (!insideReactMenu && !insideShareMenu) {
+      if (!insideReactMenu && !insideShareMenu && !insideArgumentsMenu) {
         setActiveMenu(null);
       }
     };
@@ -116,6 +124,17 @@ export default function ClashCard() {
     }, 100); // 100ms gecikme ile menüyü aç (daha hızlı)
   };
 
+  // Arguments butonuna hover
+  const handleArgumentsButtonHover = () => {
+    if (menuTimeoutRef.current) {
+      clearTimeout(menuTimeoutRef.current);
+    }
+    
+    menuTimeoutRef.current = setTimeout(() => {
+      setActiveMenu("arguments");
+    }, 300); // 300ms gecikme ile menüyü aç
+  };
+
   // Herhangi bir butondan mouse ayrıldığında
   const handleButtonMouseLeave = () => {
     if (menuTimeoutRef.current) {
@@ -160,6 +179,11 @@ export default function ClashCard() {
     setShowDropdown(false);
     // Burada gerçek bir raporlama işlemi yapılabilir
     alert("Clash has been reported");
+  };
+
+  // Arguments button click handler
+  const handleArgumentsClick = () => {
+    console.log("Go to argument details");
   };
 
   return (
@@ -218,6 +242,39 @@ export default function ClashCard() {
           <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
           <span className="text-body font-bold">Coffee vs. Tea</span>
         </div>
+        {/* Clash static info block */}
+        {(() => {
+          // MOCK: set clashStatus here for demo
+          const clashStatus = "New Clash"; // "Hot Clash", "Finished Clash"
+          let info = "";
+          let timePart = "";
+          if (clashStatus === "New Clash") {
+            info = "⚡ New Clash – ";
+            timePart = "Last 12h 23m to join.";
+          } else if (clashStatus === "Hot Clash") {
+            info = "💥 Hot Clash – ";
+            timePart = "Last 6h 19m to join.";
+          } else if (clashStatus === "Finished Clash") {
+            info = "🚨 Finished Clash – ";
+            timePart = "Time's up to join.";
+          }
+          if (!info) return null;
+
+          let bgClass = "bg-muted25";
+          let textClass = "text-secondary";
+
+          return (
+            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap ${bgClass} ${textClass} pl-2 mt-0.5`}>
+              <span className="mr-1">{info.charAt(0)}</span>
+              <span>
+                {info.slice(2)}
+                <span className="text-alert">{timePart}</span>
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Removed second redundant static info block */}
 
         {/* Statement ve Argument */}
         <h2 className="text-subheading text-secondary mb-0">Statement</h2>
@@ -226,20 +283,8 @@ export default function ClashCard() {
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
 
-        {/* Animasyonlu Mesajlar */}
-        <div className="relative h-10">
-          <div
-            className={`flex items-center space-x-2 absolute transition-opacity duration-500 ${
-              fade ? "opacity-100" : "opacity-0"
-            }`}
-          >
-            <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center">{messages[currentIndex].icon}</span>
-            <span className="text-caption text-secondary">{messages[currentIndex].text}</span>
-          </div>
-        </div>
+        {/* Removed animated message block */}
 
-        {/* Dotted Separator */}
-        <div className="border-t border-dotted border-muted my-4" />
       </div>
 
       {/* Footer Aksiyonları */}
@@ -279,6 +324,32 @@ export default function ClashCard() {
           )}
         </div>
         
+        {/* Arguments Button ve Menüsü */}
+        <div className="relative" ref={menuRefs.current.arguments}>
+          <button
+            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1"
+            onMouseEnter={handleArgumentsButtonHover}
+            onMouseLeave={handleButtonMouseLeave}
+            onClick={handleArgumentsClick}
+          >
+            <span>🤺</span>
+            <span>Arguments ({argumentCount})</span>
+          </button>
+          {activeMenu === "arguments" && (
+            <div
+              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
+              onMouseEnter={() => setActiveMenu("arguments")}
+              onMouseLeave={() => setActiveMenu(null)}
+            >
+              <div className="text-caption text-secondary whitespace-nowrap">
+                {argumentCount === 0
+                  ? "No arguments yet – strike the first one."
+                  : `${argumentCount} arguments swang.`}
+              </div>
+            </div>
+          )}
+        </div>
+        
         {/* Share Button ve Tooltip */}
         <div className="relative" ref={menuRefs.current.share}>
           <button 
@@ -288,7 +359,7 @@ export default function ClashCard() {
             onClick={copyToClipboard}
           >
             <span>🔗</span>
-            <span>Copy Link</span>
+            <span>Share</span>
           </button>
           
           {/* Share Tooltip - React menüsü ile aynı stil */}
