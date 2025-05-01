@@ -138,7 +138,6 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
             onError={() => {
               console.log("Login Failed");
             }}
-            width="100%"
             size="large"
           />
         </div>

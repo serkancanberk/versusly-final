@@ -452,15 +452,23 @@ const ClashFeed = ({ selectedTag, user }) => {
                   >
                     <div className="flex items-center justify-center">
                       <span>{sideATitle}</span>
-                      <button 
-                        className="ml-1 text-xs opacity-50 hover:opacity-100"
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="ml-1 text-xs opacity-50 hover:opacity-100 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditSideTitle('A');
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation();
+                            handleEditSideTitle('A');
+                          }
+                        }}
                       >
                         ✏️
-                      </button>
+                      </span>
                     </div>
                   </button>
                   <button
@@ -473,15 +481,23 @@ const ClashFeed = ({ selectedTag, user }) => {
                   >
                     <div className="flex items-center justify-center">
                       <span>{sideBTitle}</span>
-                      <button 
-                        className="ml-1 text-xs opacity-50 hover:opacity-100"
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="ml-1 text-xs opacity-50 hover:opacity-100 cursor-pointer"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleEditSideTitle('B');
                         }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.stopPropagation();
+                            handleEditSideTitle('B');
+                          }
+                        }}
                       >
                         ✏️
-                      </button>
+                      </span>
                     </div>
                   </button>
                 </div>

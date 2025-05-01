@@ -1,6 +1,6 @@
-const express = require('express');
-const axios = require('axios');
-const Clash = require('../models/Clash.cjs'); // Clash modelini doğru bir şekilde import ediyoruz
+import express from 'express';
+import axios from 'axios';
+import Clash from '../models/Clash.js'; // Clash modelini doğru bir şekilde import ediyoruz
 const router = express.Router();
 
 // Tüm Clash'leri getirme (tag filtreli)
@@ -199,4 +199,4 @@ router.post('/suggest-tags', async (req, res) => {
   }
 });
 
-module.exports = router; // clashRoutes'u dışarıya aktarıyoruz
+export default router; // clashRoutes'u dışarıya aktarıyoruz

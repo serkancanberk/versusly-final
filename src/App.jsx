@@ -9,19 +9,25 @@ function App() {
 
   React.useEffect(() => {
     const storedUser = localStorage.getItem("versusly_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      fetch("http://localhost:8080/api/auth/me", {
-        credentials: "include",
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data.user) {
-            setUser(data.user);
-            localStorage.setItem("versusly_user", JSON.stringify(data.user));
-          }
+    if (storedUser && storedUser !== "undefined") {
+      try {
+        const userObj = JSON.parse(storedUser);
+        setUser(userObj);
+        fetch("http://localhost:8080/api/auth/me", {
+          credentials: "include",
         })
-        .catch((err) => console.error("Failed to fetch user:", err));
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data.user) {
+              setUser(data.user);
+              localStorage.setItem("versusly_user", JSON.stringify(data.user));
+            }
+          })
+          .catch((err) => console.error("Failed to fetch user:", err));
+      } catch (e) {
+        console.warn("Could not parse stored user:", e);
+        localStorage.removeItem("versusly_user");
+      }
     }
   }, []);
 
