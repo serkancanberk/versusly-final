@@ -1,8 +1,8 @@
 import express from "express";
 import { OAuth2Client } from "google-auth-library";
-import User from "../models/User.cjs";
-import { handleGoogleLogin } from "../controllers/authController.cjs";
-import authenticateUser from "../middleware/authMiddleware.cjs";
+import User from "../models/User.js";
+import { handleGoogleLogin } from "../controllers/authController.js";
+import authenticateUser from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 const client = new OAuth2Client();

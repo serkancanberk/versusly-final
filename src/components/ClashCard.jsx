@@ -430,9 +430,11 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
         </div>
 
         {/* Check This CTA */}
-        <button className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
-        Jump into the fire 🔥
-        </button>
+        <div className="w-full">
+          <button className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
+            Jump into the fire 🔥
+          </button>
+        </div>
       </div>
     </div>
   );

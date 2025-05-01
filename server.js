@@ -1,9 +1,10 @@
-require('dotenv').config();
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const clashRoutes = require('./src/routes/clashRoutes.cjs');
-const authRoutes = require('./src/routes/authRoutes.cjs');
+import dotenv from 'dotenv';
+dotenv.config();
+import express from 'express';
+import mongoose from 'mongoose';
+import cors from 'cors';
+import clashRoutes from './src/routes/clashRoutes.js';
+import authRoutes from './src/routes/authRoutes.js';
 
 const app = express();
 let server; // Server instance'ını global olarak tutuyoruz
@@ -98,7 +99,7 @@ const PORT = 8080;
 const startServer = async () => {
   try {
     console.log("Attempting to connect to MongoDB...");
-    await mongoose.connect('mongodb://localhost:27017/versusly');
+    await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected successfully");
 
     server = app.listen(PORT, '0.0.0.0', (error) => {

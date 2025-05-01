@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const argumentSchema = new mongoose.Schema({
   author: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
@@ -28,4 +28,4 @@ const clashSchema = new mongoose.Schema({
 
 clashSchema.index({ createdAt: -1 });
 
-module.exports = mongoose.model('Clash', clashSchema);
+export default mongoose.model('Clash', clashSchema);
