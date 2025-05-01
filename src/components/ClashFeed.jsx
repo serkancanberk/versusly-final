@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import ClashCard from "./ClashCard";
 
-const ClashFeed = () => {
+const mockUserId = "6620a0c1f3f6a6abc1234567"; // Mock user ID for testing
+
+const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
   const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
@@ -14,16 +16,39 @@ const ClashFeed = () => {
   const offsetRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
+  // Tag input state
+  const [tags, setTags] = useState([]);
+  const [tagInput, setTagInput] = useState("");
+  // Tag input handlers
+  const handleTagInputChange = (e) => {
+    setTagInput(e.target.value);
+  };
 
-  // Fetch clashes with pagination and sort option
+  const handleTagInputKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+      e.preventDefault();
+      if (!tags.includes(tagInput.trim())) {
+        setTags([...tags, tagInput.trim()]);
+      }
+      setTagInput("");
+    }
+  };
+
+  const handleTagRemove = (tagToRemove) => {
+    setTags(tags.filter(tag => tag !== tagToRemove));
+  };
+
+
+  // Fetch clashes with pagination, sort option, and tag filter
   const fetchClashes = async () => {
     setIsLoading(true);
     try {
       // Add a short delay to make loading feel smoother
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ms delay
-
+      const tagParam = selectedTag ? `&tag=${encodeURIComponent(selectedTag)}` : "";
+      // Request creator population (username, profileImage) from the backend
       const res = await fetch(
-        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}`
+        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}${tagParam}`
       );
       const data = await res.json();
       if (data.length === 0) {
@@ -37,6 +62,15 @@ const ClashFeed = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Tag filter handler
+  const handleTagFilter = (tag) => {
+    setSelectedTag(tag);
+    setClashList([]);
+    setHasMore(true);
+    offsetRef.current = 0;
+    fetchClashes();
   };
 
   // IntersectionObserver for lazy loading (refactored to avoid repeated triggering)
@@ -214,6 +248,14 @@ const ClashFeed = () => {
     };
   }, [sortMenuRef]);
 
+  // Re-fetch clashes when selectedTag changes
+  useEffect(() => {
+    setClashList([]);
+    setHasMore(true);
+    offsetRef.current = 0;
+    fetchClashes();
+  }, [selectedTag]);
+
   // "Start A New Clash" butonuna tıklandığında detaylı formu göster
   const handleStartNewClash = () => {
     setShowDetailedForm(true);
@@ -228,10 +270,11 @@ const ClashFeed = () => {
       vs_title: titleValue,
       vs_statement: statement,
       vs_argument: supportingArgument,
-      creator: null,
+      creator: user?._id || mockUserId,
       status: "active",
       duration: 24,
-      expires_at
+      expires_at,
+      tags
     };
 
     try {
@@ -255,6 +298,8 @@ const ClashFeed = () => {
         setSelectedSide("A");
         setSideATitle("Side A");
         setSideBTitle("Side B");
+        setTags([]);
+        setTagInput("");
         setShowDetailedForm(false);
       } else {
         console.error("Failed to create clash:", await response.text());
@@ -275,6 +320,8 @@ const ClashFeed = () => {
     setSelectedSide("A");
     setSideATitle("Side A");
     setSideBTitle("Side B");
+    setTags([]);
+    setTagInput("");
     setShowDetailedForm(false);
   };
 
@@ -327,20 +374,26 @@ const ClashFeed = () => {
             <div className="relative w-full">
               <input
                 type="text"
-                placeholder="What's your VS? Let's start with your own or roll the dice!"
+                placeholder="What's your VS? Let's start with your own or get help from AI!"
                 className="w-full mb-2 px-4 py-2 text-secondary text-label placeholder-opacity-50 bg-white border-b-2 border-primary shadow-md rounded-lg"
                 value={titleValue}
                 onChange={handleTitleChange}
                 onKeyPress={handleKeyPress}
               />
-<button 
-  className="absolute right-3 top-0 h-full flex items-center text-body hover:scale-110 transition-transform"
-  onClick={getRandomVs}
-  title="Get a random VS topic"
->
-  🎲
-</button>
-           </div>
+              <div className="absolute right-3 top-0 h-full flex items-center">
+                <div className="relative group">
+                  <button
+                    className="w-8 h-8 bg-muted25 text-secondary text-caption rounded-full flex items-center justify-center"
+                    onClick={getRandomVs}
+                  >
+                    ✨
+                  </button>
+                  <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                    Get Help From AI
+                  </div>
+                </div>
+              </div>
+            </div>
             <div className="flex justify-end">
               <button
                 className="px-6 py-2 mt-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto"
@@ -355,7 +408,7 @@ const ClashFeed = () => {
         ) : (
           // Detaylı form (butona tıklandıktan sonra) - Yeni tasarım
           <div className="bg-white rounded-lg p-5 shadow-md">
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {/* Title of VS */}
               <div className="flex flex-col">
                 <label className="text-label text-secondary mt-3 mb-1 opacity-75">Title of VS</label>
@@ -364,19 +417,23 @@ const ClashFeed = () => {
                     id="title-vs-input"
                     type="text"
                     placeholder="e.g., Metallica vs. Iron Maiden"
-                    className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
+                    className="w-full px-4 py-2 text-secondary text-sm sm:text-label border-b border-primary bg-white rounded-md focus:outline-none"
                     value={titleValue}
                     onChange={handleTitleChange}
                     onKeyPress={handleKeyPress}
                   />
-                  <div className="absolute right-2 top-2 flex space-x-1">
-                    <button 
-                      className="text-body hover:scale-110 transition-transform leading-none"
-                      onClick={getRandomVs}
-                      title="Get a random VS topic"
-                    >
-                      🎲
-                    </button>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                    <div className="relative group">
+                      <button
+                        className="w-8 h-8 bg-muted25 text-secondary text-caption rounded-full flex items-center justify-center"
+                        onClick={getRandomVs}
+                      >
+                        ✨
+                      </button>
+                      <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        Get Help From AI
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -438,38 +495,116 @@ const ClashFeed = () => {
                     id="statement-input"
                     type="text"
                     placeholder="Drop your bold idea here"
-                    className="w-full px-4 py-2 text-secondary text-label border-b border-primary bg-white rounded-md focus:outline-none"
+                    className="w-full px-4 py-2 text-secondary text-sm sm:text-label border-b border-primary bg-white rounded-md focus:outline-none"
                     value={statement}
                     onChange={handleInputChange}
                     onKeyPress={handleKeyPress}
                   />
-                  <div className="absolute right-2 top-2 flex space-x-1">
-                    <button
-                      className="text-secondary hover:text-primary"
-                      onClick={generateMockStatement}
-                      title="Generate a bold statement"
-                    >
-                      ✨
-                    </button>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                    <div className="relative group">
+                      <button
+                        className="w-8 h-8 bg-muted25 text-secondary text-caption rounded-full flex items-center justify-center"
+                        onClick={generateMockStatement}
+                      >
+                        ✨
+                      </button>
+                      <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                        Get Help From AI
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Argument */}
+              {/*
+              Argument
               <div className="flex flex-col">
                 <label className="text-label text-secondary mt-3 mb-1 opacity-75">Supporting Argument</label>
                 <div className="relative">
                   <input
                     id="supporting-argument-input"
                     type="text"
-                    placeholder="It is optional. Need help? Ask AI to complete it"
-                    className="w-full px-4 py-2 text-secondary text-label border-b border-muted bg-white rounded-md focus:outline-none"
+                    placeholder="It is optional. Need help? Get Help From AI to complete it"
+                    className="w-full px-4 py-2 text-secondary text-sm sm:text-label border-b border-muted bg-white rounded-md focus:outline-none"
                     value={supportingArgument}
                     onChange={handleSupportingArgChange}
                     onKeyPress={handleKeyPress}
                   />
-                  <div className="absolute right-2 top-2 flex space-x-1">
-                    <button className="text-secondary hover:text-primary">✨</button>
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                    <button
+                      className="group flex items-center overflow-hidden whitespace-nowrap bg-muted25 text-secondary text-caption rounded-full w-8 hover:w-36 transition-all duration-300 ease-in-out pl-2 pr-0.5 py-1"
+                      title="Suggest a supporting argument"
+                    >
+                      <span className="mr-1">✨</span>
+                      <span className="text-label opacity-0 group-hover:opacity-75 transition-opacity duration-200">Get Help From AI</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              */}
+
+              {/* Tags Input */}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mt-3 mb-1">
+                  <label className="text-label text-secondary opacity-75">Tags (Press Enter or , to add)</label>
+                </div>
+                <div className="flex flex-wrap items-center border-b border-muted bg-white px-3 py-2 rounded-md">
+                  {tags.map((tag, index) => (
+                    <span
+                      key={index}
+                      className="bg-primary text-secondary text-caption px-2 py-1 mr-2 mb-2 rounded-full flex items-center space-x-1"
+                    >
+                      <span>{tag}</span>
+                      <button
+                        onClick={() => handleTagRemove(tag)}
+                        className="ml-1 text-xs opacity-75 hover:opacity-100"
+                      >
+                        ❌
+                      </button>
+                    </span>
+                  ))}
+                  <input
+                    type="text"
+                    className="flex-grow px-2 py-1 text-secondary placeholder:text-label bg-transparent focus:outline-none"
+                    placeholder="e.g., Tech, Politics"
+                    value={tagInput}
+                    onChange={handleTagInputChange}
+                    onKeyDown={handleTagInputKeyDown}
+                  />
+                  <div className="relative group ml-2">
+                    <button
+                      className="w-8 h-8 bg-muted25 text-secondary text-caption rounded-full flex items-center justify-center"
+                      onClick={async () => {
+                        if (!titleValue.trim()) return;
+                        try {
+                          const res = await fetch('http://localhost:8080/api/clashes/suggest-tags', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: titleValue.trim() })
+                          });
+                          const data = await res.json();
+                          if (typeof data.tags === 'string') {
+                            try {
+                              const parsedTags = JSON.parse(data.tags);
+                              if (Array.isArray(parsedTags)) {
+                                setTags(parsedTags);
+                              }
+                            } catch (jsonErr) {
+                              console.error("Failed to parse tag string as JSON array", jsonErr);
+                            }
+                          } else if (Array.isArray(data.tags)) {
+                            setTags(data.tags);
+                          }
+                        } catch (err) {
+                          console.error("Failed to fetch suggested tags:", err);
+                        }
+                      }}
+                    >
+                      ✨
+                    </button>
+                    <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                      Get Help From AI
+                    </div>
                   </div>
                 </div>
               </div>
@@ -483,7 +618,7 @@ const ClashFeed = () => {
                   🗑️ Clear
                 </button>
                 <button
-                  className="px-3 py-3 bg-primary text-label text-secondary rounded-md hover:bg-opacity-75"
+                  className="px-4 py-2 sm:px-6 sm:py-3 bg-primary text-sm sm:text-label text-secondary rounded-md hover:bg-opacity-75"
                   onClick={handleReleaseClash}
                   disabled={!titleValue.trim() || !statement.trim()}
                   style={{ opacity: titleValue.trim() && statement.trim() ? 1 : 0.75 }}
@@ -533,16 +668,20 @@ const ClashFeed = () => {
       </div>
 
       {/* Clash Cards */}
-      <div className="space-y-6 sm:space-y-6 px-6 sm:px-10 pt-2">
-        {clashList.map((clash) => (
+      <div className="space-y-4 sm:space-y-6 px-6 sm:px-10 pt-2">
+        {clashList.map((clash, index) => (
           <ClashCard
-            key={clash._id}
+            key={`${clash._id}-${index}`}
             title={clash.vs_title}
             statement={clash.vs_statement}
             argument={clash.vs_argument}
             argumentCount={clash.arguments?.length || 0}
             reactions={clash.reactions}
             expires_at={clash.expires_at}
+            tags={clash.tags}
+            createdAt={clash.createdAt || clash.created_at}
+            username={clash.creator?.username || "@username_A"}
+            userImage={clash.creator?.profileImage || "https://randomuser.me/api/portraits/women/1.jpg"}
           />
         ))}
         
@@ -557,7 +696,7 @@ const ClashFeed = () => {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
               </svg>
-              <p className="text-sm text-secondary py-2">Loading more clashes...</p>
+              <p className="text-sm text-secondary py-2">Clashes are loading...</p>
             </div>
           ) : clashList.length === 0 ? (
             <p className="text-sm text-secondary py-2">No clashes yet. Be the first to start one!</p>

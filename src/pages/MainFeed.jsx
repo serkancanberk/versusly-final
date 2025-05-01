@@ -1,16 +1,24 @@
 // src/pages/MainFeed.jsx
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import NavigationSidebar from '../components/NavigationSideBar';
 import ClashFeed from '../components/ClashFeed';
 import RightSidebar from '../components/RightSidebar';
 import Header from '../components/Header';
 
-const MainFeed = () => {
+const MainFeed = ({ user, setUser }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedTag = searchParams.get("tag");
+
+  const handleTagFilter = (tag) => {
+    setSearchParams(tag ? { tag } : {});
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-bgashwhite">
       {/* Header - Mobile only */}
       <div className="sm:hidden">
-        <Header />
+        <Header user={user} setUser={setUser} />
       </div>
       
       {/* Main content */}
@@ -24,13 +32,13 @@ const MainFeed = () => {
 
         {/* Center Feed - Scrollable */}
         <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
-          <ClashFeed />
+          <ClashFeed selectedTag={selectedTag} user={user} />
         </div>
 
         {/* Right Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[27%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-          <RightSidebar />
+          <RightSidebar onTagClick={handleTagFilter} selectedTag={selectedTag} user={user} setUser={setUser} />
           </div>
         </div>
       </div>

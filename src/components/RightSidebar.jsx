@@ -1,6 +1,9 @@
 import React from "react";
+import { GoogleLogin } from "@react-oauth/google";
 
-const RightSidebar = () => {
+const RightSidebar = ({ onTagClick, selectedTag }) => {
+  // GoogleLogin handles login internally
+
   return (
     <div className="p-4 pl-6 pr-4 flex flex-col h-full">
       {/* Top Combat Arenas */}
@@ -20,23 +23,89 @@ const RightSidebar = () => {
         
         <div className="flex flex-wrap gap-2 mb-2">
           {/* İlk satır */}
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Mind Duel</button>
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Pop Arena</button>
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Fan Battle</button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Mind Duel" ? null : "Mind Duel")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Mind Duel" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Mind Duel
+          </button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Pop Arena" ? null : "Pop Arena")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Pop Arena" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Pop Arena
+          </button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Fan Battle" ? null : "Fan Battle")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Fan Battle" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Fan Battle
+          </button>
         </div>
         
         <div className="flex flex-wrap gap-2 mb-2">
           {/* İkinci satır */}
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Taste War</button>
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Tech Clash</button>
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Old School</button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Taste War" ? null : "Taste War")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Taste War" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Taste War
+          </button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Tech Clash" ? null : "Tech Clash")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Tech Clash" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Tech Clash
+          </button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Old School" ? null : "Old School")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Old School" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Old School
+          </button>
         </div>
         
         <div className="flex flex-wrap gap-2 mb-6">
           {/* Üçüncü satır */}
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Hype Showdown</button>
-          <button className="px-3 py-3 mt-3 bg-muted25 text-caption text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">Wildcard</button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Hype Showdown" ? null : "Hype Showdown")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Hype Showdown" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Hype Showdown
+          </button>
+          <button
+            onClick={() => onTagClick(selectedTag === "Wildcard" ? null : "Wildcard")}
+            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
+              selectedTag === "Wildcard" ? "bg-primary" : "bg-muted25"
+            }`}
+          >
+            Wildcard
+          </button>
         </div>
+        {selectedTag && (
+          <div className="flex justify-end mb-6">
+            <button
+              onClick={() => onTagClick(null)}
+              className="px-3 py-1 rounded-full bg-alert text-bgwhite text-caption shadow-sm hover:opacity-90 transition"
+            >
+              ✖ Clear Filter
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Join the Clash */}
@@ -45,9 +114,34 @@ const RightSidebar = () => {
         <p className="text-label text-muted-dark mb-4">
           From hot takes to showdowns — pick a side and make it count.
         </p>
-        <button className="w-full px-3 py-3 mt-3 mb-2 bg-primary text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
-          Enter With Google
-        </button>
+        <div className="mt-3 mb-2">
+          <GoogleLogin
+            onSuccess={(credentialResponse) => {
+              const token = credentialResponse.credential;
+              fetch("http://localhost:8080/api/auth/google", {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ token }),
+              })
+                .then((res) => res.json())
+                .then((data) => {
+                  console.log("Backend response:", data);
+                  localStorage.setItem("versusly_user", JSON.stringify(data.user));
+                  // Optionally store user data or token in localStorage/sessionStorage here
+                })
+                .catch((err) => {
+                  console.error("Error sending token to backend:", err);
+                });
+            }}
+            onError={() => {
+              console.log("Login Failed");
+            }}
+            width="100%"
+            size="large"
+          />
+        </div>
         <button className="w-full px-3 py-3 mt-2 mb-2 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
           Rejoin
         </button>

@@ -1,17 +1,20 @@
 const express = require('express');
+const axios = require('axios');
 const Clash = require('../models/Clash.cjs'); // Clash modelini doğru bir şekilde import ediyoruz
 const router = express.Router();
 
-// Tüm Clash'leri getirme
+// Tüm Clash'leri getirme (tag filtreli)
 router.get('/', async (req, res) => {
   try {
-    // Sorting and pagination logic
-    const sortField = (req.query.sort || '-created_at').replace('-', '');
-    const sortOrder = (req.query.sort || '-created_at').startsWith('-') ? -1 : 1;
+    const sortField = (req.query.sort || '-createdAt').replace('-', '');
+    const sortOrder = (req.query.sort || '-createdAt').startsWith('-') ? -1 : 1;
     const limit = parseInt(req.query.limit) || 10;
     const offset = parseInt(req.query.offset) || 0;
 
-    const clashes = await Clash.find()
+    const tag = req.query.tag;
+    const filter = tag ? { tags: { $in: [tag] } } : {};
+
+    const clashes = await Clash.find(filter)
       .sort({ [sortField]: sortOrder })
       .skip(offset)
       .limit(limit);
@@ -99,9 +102,6 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router; // clashRoutes'u dışarıya aktarıyoruz
-
-
 // Yeni bir argüman ekleme
 router.post('/:id/argument', async (req, res) => {
   const { text, author } = req.body;
@@ -155,3 +155,48 @@ router.post('/:id/react', async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 });
+
+router.post('/suggest-tags', async (req, res) => {
+  const { title } = req.body;
+
+  if (!title || title.trim() === "") {
+    return res.status(400).json({ message: "Title is required for tag suggestion." });
+  }
+
+  try {
+    const openaiRes = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "You are a helpful assistant that generates 3-5 short, fun and relevant topic tags based on a title for a debate or versus content. Return only an array of tags."
+          },
+          {
+            role: "user",
+            content: `Suggest topic tags for the debate title: "${title}"`
+          }
+        ],
+        max_tokens: 100,
+        temperature: 0.7
+      },
+      {
+        headers: {
+          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    const tagResponse = openaiRes.data.choices[0].message.content;
+    const tags = JSON.parse(tagResponse);
+
+    res.json({ tags });
+  } catch (err) {
+    console.error("OpenAI tag suggestion error:", err.message);
+    res.status(500).json({ message: "Failed to generate tags." });
+  }
+});
+
+module.exports = router; // clashRoutes'u dışarıya aktarıyoruz

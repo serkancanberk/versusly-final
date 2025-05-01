@@ -10,6 +10,7 @@ const clashSchema = new mongoose.Schema({
   vs_title: String,
   vs_statement: String,
   vs_argument: String,
+  tags: [String],
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
   votes: [],
   status: { type: String, default: 'active' },
@@ -25,6 +26,6 @@ const clashSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-clashSchema.index({ created_at: -1 });
+clashSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.model('Clash', clashSchema);

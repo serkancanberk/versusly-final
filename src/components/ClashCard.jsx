@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
+import { formatDistanceToNow } from "date-fns";
 
-export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at }) {
+export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator }) {
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
@@ -182,20 +183,38 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
     console.log("Go to argument details");
   };
 
+  useEffect(() => {
+    console.log("RAW createdAt from props:", createdAt);
+    if (createdAt && typeof createdAt === "string") {
+      try {
+        const parsedDate = new Date(createdAt);
+        console.log("Parsed createdAt:", parsedDate.toISOString());
+      } catch (err) {
+        console.error("Error parsing createdAt:", err);
+      }
+    }
+  }, [createdAt]);
+  console.log("createdAt:", createdAt);
   return (
     <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300">
-      
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
           <img
-            src="https://randomuser.me/api/portraits/women/1.jpg"
+            src={(creator?.profileImage) || "https://randomuser.me/api/portraits/women/1.jpg"}
             alt="Profile"
             className="w-10 h-10 rounded-full object-cover"
           />
           <div className="flex flex-col">
-            <span className="text-body text-secondary">@username_A</span>
-            <span className="text-caption text-mutedDark">3h ago</span>
+            <span className="text-body text-secondary">@{creator?.username || "anonymous"}</span>
+            <span className="text-caption text-mutedDark">
+              {(() => {
+                const date = new Date(createdAt);
+                return date instanceof Date && !isNaN(date.getTime())
+                  ? formatDistanceToNow(date, { addSuffix: true })
+                  : "sometime ago";
+              })()}
+            </span>
           </div>
         </div>
         {/* Üç nokta menüsü */}
@@ -243,9 +262,16 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           const expires = new Date(expires_at);
           if (!expires_at || !(expires instanceof Date) || isNaN(expires.getTime())) {
             return (
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2 mt-0.5">
-                <span className="mr-1">⚠️</span>
-                <span>Invalid expiration date</span>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2">
+                  <span className="mr-1">⚠️</span>
+                  <span>Invalid expiration date</span>
+                </div>
+                {tags && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
+                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
+                    🏷️ {tag}
+                  </span>
+                ))}
               </div>
             );
           }
@@ -271,12 +297,19 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           let textClass = "text-secondary";
 
           return (
-            <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap ${bgClass} ${textClass} pl-2 mt-0.5`}>
-              <span className="mr-1">{info.charAt(0)}</span>
-              <span>
-                {info.slice(2)}
-                <span className="text-alert">{timePart}</span>
-              </span>
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap ${bgClass} ${textClass} pl-2`}>
+                <span className="mr-1">{info.charAt(0)}</span>
+                <span>
+                  {info.slice(2)}
+                  <span className="text-alert">{timePart}</span>
+                </span>
+              </div>
+              {tags && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
+                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
+                  🏷️ {tag}
+                </span>
+              ))}
             </div>
           );
         })()}
@@ -299,107 +332,106 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
       </div>
 
-      {/* Footer Aksiyonları */}
-      <div className="flex items-center justify-between p-4 pt-0">
-        {/* React Button ve Menüsü */}
-        <div className="relative" ref={menuRefs.current.react}>
-          <button 
-            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1"
-            onMouseEnter={handleReactButtonHover}
-            onMouseLeave={handleButtonMouseLeave}
-          >
-            <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
-            <span>{selectedReaction ? selectedReaction.label : "React"}</span>
-          </button>
-          
-          {/* Reaction Menu */}
-          {activeMenu === "react" && (
-            <div 
-              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
-              onMouseEnter={() => setActiveMenu("react")}
-              onMouseLeave={() => setActiveMenu(null)}
+      {/* Footer Aksiyonları (Refactored for mobile UX and alignment) */}
+      <div className="px-4 pt-0 pb-4 space-y-2">
+        <div className="flex justify-between gap-2">
+          {/* React Button */}
+          <div className="flex-1 relative" ref={menuRefs.current.react}>
+            <button 
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+              onMouseEnter={handleReactButtonHover}
+              onMouseLeave={handleButtonMouseLeave}
             >
-              <div className="flex gap-3 justify-between">
-                {safeReactions.map((reaction, index) => (
-                  <button
-                    key={index}
-                    className="flex flex-col items-center justify-center hover:scale-110 transition-transform p-1 hover:bg-muted25 rounded-lg"
-                    onClick={() => handleReactionSelect(reaction)}
-                    title={reaction.description}
-                  >
-                    <span className="text-xl mb-1">{reaction.emoji}</span>
-                    <span className="text-xs text-mutedDark whitespace-nowrap">{reaction.label}</span>
-                  </button>
-                ))}
+              <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
+              <span>{selectedReaction ? selectedReaction.label : "React"}</span>
+            </button>
+            {activeMenu === "react" && (
+              <div 
+                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
+                onMouseEnter={() => setActiveMenu("react")}
+                onMouseLeave={() => setActiveMenu(null)}
+              >
+                <div className="flex gap-3 justify-between">
+                  {safeReactions.map((reaction, index) => (
+                    <button
+                      key={index}
+                      className="flex flex-col items-center justify-center hover:scale-110 transition-transform p-1 hover:bg-muted25 rounded-lg"
+                      onClick={() => handleReactionSelect(reaction)}
+                      title={reaction.description}
+                    >
+                      <span className="text-xl mb-1">{reaction.emoji}</span>
+                      <span className="text-xs text-mutedDark whitespace-nowrap">{reaction.label}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Arguments Button ve Menüsü */}
-        <div className="relative" ref={menuRefs.current.arguments}>
-          <button
-            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1"
-            onMouseEnter={handleArgumentsButtonHover}
-            onMouseLeave={handleButtonMouseLeave}
-            onClick={handleArgumentsClick}
-          >
-            <span>🤺</span>
-            <span>Arguments ({argumentCount})</span>
-          </button>
-          {activeMenu === "arguments" && (
-            <div
-              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
-              onMouseEnter={() => setActiveMenu("arguments")}
-              onMouseLeave={() => setActiveMenu(null)}
+            )}
+          </div>
+
+          {/* Arguments Button */}
+          <div className="flex-1 relative" ref={menuRefs.current.arguments}>
+            <button
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+              onMouseEnter={handleArgumentsButtonHover}
+              onMouseLeave={handleButtonMouseLeave}
+              onClick={handleArgumentsClick}
             >
-              <div className="text-caption text-secondary whitespace-nowrap">
-                {argumentCount === 0
-                  ? "No arguments yet – strike the first one."
-                  : `${argumentCount} arguments swang.`}
+              <span>🤺</span>
+              <span>Args ({argumentCount})</span>
+            </button>
+            {activeMenu === "arguments" && (
+              <div
+                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
+                onMouseEnter={() => setActiveMenu("arguments")}
+                onMouseLeave={() => setActiveMenu(null)}
+              >
+                <div className="text-caption text-secondary whitespace-nowrap">
+                  {argumentCount === 0
+                    ? "No arguments yet – strike the first one."
+                    : `${argumentCount} arguments swang.`}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Share Button ve Tooltip */}
-        <div className="relative" ref={menuRefs.current.share}>
-          <button 
-            className="flex items-center space-x-1 text-caption text-secondary hover:text-mutedDark hover:scale-110 transition-transform hover:bg-muted25 rounded-md p-1" 
-            onMouseEnter={handleShareButtonHover}
-            onMouseLeave={handleButtonMouseLeave}
-            onClick={copyToClipboard}
-          >
-            <span>🔗</span>
-            <span>Share</span>
-          </button>
-          
-          {/* Share Tooltip - React menüsü ile aynı stil */}
-          {activeMenu === "share" && (
-            <div 
-              className="absolute bottom-10 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
-              onMouseEnter={() => setActiveMenu("share")}
-              onMouseLeave={() => setActiveMenu(null)}
+            )}
+          </div>
+
+          {/* Share Button */}
+          <div className="flex-1 relative" ref={menuRefs.current.share}>
+            <button 
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2" 
+              onMouseEnter={handleShareButtonHover}
+              onMouseLeave={handleButtonMouseLeave}
+              onClick={copyToClipboard}
             >
-              <div className="flex items-center space-x-2">
-                {copied ? (
-                  <div className="flex items-center space-x-1 hover:scale-105 transition-transform">
-                    <span className="text-xl">✅</span>
-                    <span className="text-xs text-secondary whitespace-nowrap font-medium">Link Copied!</span>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-start hover:scale-105 transition-transform">
-                    <span className="text-sm text-secondary truncate max-w-36">{clashUrl}</span>
-                    <span className="text-xs text-mutedDark">Tap to copy</span>
-                  </div>
-                )}
+              <span>🔗</span>
+              <span>Share</span>
+            </button>
+            {activeMenu === "share" && (
+              <div 
+                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
+                onMouseEnter={() => setActiveMenu("share")}
+                onMouseLeave={() => setActiveMenu(null)}
+              >
+                <div className="flex items-center space-x-2">
+                  {copied ? (
+                    <div className="flex items-center space-x-1 hover:scale-105 transition-transform">
+                      <span className="text-xl">✅</span>
+                      <span className="text-xs text-secondary whitespace-nowrap font-medium">Link Copied!</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-start hover:scale-105 transition-transform">
+                      <span className="text-sm text-secondary truncate max-w-36">{clashUrl}</span>
+                      <span className="text-xs text-mutedDark">Tap to copy</span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
-        
-        <button className="px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
-          💀 Check This
+
+        {/* Check This CTA */}
+        <button className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
+        Jump into the fire 🔥
         </button>
       </div>
     </div>

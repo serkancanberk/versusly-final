@@ -1,7 +1,9 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const clashRoutes = require('./src/routes/clashRoutes.cjs');
+const authRoutes = require('./src/routes/authRoutes.cjs');
 
 const app = express();
 let server; // Server instance'ını global olarak tutuyoruz
@@ -64,6 +66,7 @@ app.get('/test', (req, res) => {
 
 // API routes
 app.use('/api/clashes', clashRoutes);
+app.use('/api/auth', authRoutes);
 
 // 404 handler
 app.use((req, res) => {
