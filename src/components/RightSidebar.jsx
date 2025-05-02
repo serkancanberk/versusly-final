@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
-const RightSidebar = ({ onTagClick, selectedTag }) => {
+const RightSidebar = ({ onTagClick, selectedTag, setUser }) => {
   // GoogleLogin handles login internally
 
   const [profile, setProfile] = useState(null);
@@ -13,19 +13,17 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      fetch("http://localhost:8080/api/auth/me", {
-        headers: { Authorization: `Bearer ${token}` },
+    if (!isClient) return;
+    fetch("http://localhost:8080/api/auth/me", {
+      credentials: "include"
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Unauthorized");
+        return res.json();
       })
-        .then(res => {
-          if (!res.ok) throw new Error("Unauthorized");
-          return res.json();
-        })
-        .then(data => setProfile(data.user || data))
-        .catch(() => setProfile(null));
-    }
-  }, []);
+      .then(data => setProfile(data.user || data))
+      .catch(() => setProfile(null));
+  }, [isClient]);
 
   return (
     <div className="p-4 pl-6 pr-4 flex flex-col h-full">
@@ -33,14 +31,20 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
       <div className="mt-16 flex-grow">
         <h2 className="text-subheading text-secondary mb-4">🛡️ Find Tough Clashes</h2>
         {/* Arama kutusu */}
-        <div className="relative mb-3">
+        <div className="relative mb-3 group">
           <input
             type="text"
             placeholder="What battle are you looking for?"
             className="w-full py-2 px-4 text-sm text-secondary bg-muted25 rounded-md"
+            readOnly
           />
           <div className="absolute right-2 top-2 text-secondary">
             🔍
+          </div>
+          <div
+            className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
+          >
+            Search coming soon!
           </div>
         </div>
         
@@ -138,15 +142,36 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
           From hot takes to showdowns — pick a side and make it count.
         </p>
         {profile ? (
-          <div className="flex items-center space-x-3 mb-4">
-            <img src={profile.picture} alt={profile.name} className="w-10 h-10 rounded-full" />
-            <div>
-              <p className="font-semibold text-body">{profile.name}</p>
-              <p className="text-caption text-muted">{profile.email}</p>
+          <div className="relative md:sticky top-4 bg-white p-4 rounded-lg shadow-lg border border-muted mb-4">
+            <div className="flex items-center space-x-3">
+              <img
+                src={profile.picture}
+                alt={profile.name}
+                className="w-10 h-10 rounded-full ring-2 ring-accent"
+              />
+              <div>
+                <p className="font-semibold text-body">{profile.name}</p>
+                <p className="text-caption text-mutedDark">{profile.email}</p>
+              </div>
             </div>
+            <button
+              onClick={() => {
+                fetch("http://localhost:8080/api/auth/logout", {
+                  method: "POST",
+                  credentials: "include"
+                }).finally(() => {
+                  setProfile(null);
+                  setUser(null);
+                  window.location.href = "/";
+                });
+              }}
+              className="w-full text-center py-2 mt-3 bg-muted25/75 text-mutedDark text-label rounded-md hover:bg-muted25 hover:scale-105 active:scale-95 transition transform"
+            >
+              💀 Sign Out
+            </button>
           </div>
         ) : (
-          <div className="mt-3 mb-2">
+          <div className="mt-4 mb-4 w-full flex justify-center">
             {isClient && (
               <GoogleLogin
                 onSuccess={(credentialResponse) => {
@@ -156,29 +181,22 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
                     headers: {
                       "Content-Type": "application/json",
                     },
+                    credentials: "include",
                     body: JSON.stringify({ token }),
                   })
                     .then((res) => res.json())
                     .then((data) => {
-                      console.log("Backend response:", data);
-                      localStorage.setItem("token", data.token);
                       setProfile(data.user);
+                      setUser(data.user);
                     })
-                    .catch((err) => {
-                      console.error("Error sending token to backend:", err);
-                    });
+                    .catch(() => {});
                 }}
-                onError={() => {
-                  console.log("Login Failed");
-                }}
+                onError={() => {}}
                 size="large"
               />
             )}
           </div>
         )}
-        <button className="w-full px-3 py-3 mt-2 mb-2 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
-          Rejoin
-        </button>
       </div>
     </div>
   );

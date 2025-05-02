@@ -1,6 +1,7 @@
 import React from "react";
 
 const NavigationSideBar = () => {
+  const hasUser = Boolean(localStorage.getItem("token"));
   return (
     <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0">
       {/* Logo Bölümü */}
@@ -19,34 +20,68 @@ const NavigationSideBar = () => {
             </a>
           </li>
           <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
-              <span className="inline-block w-6 mr-3">➕</span>
-              <span className="text-body">New</span>
-            </a>
+            {hasUser ? (
+              <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+                <span className="inline-block w-6 mr-3">🥷🏻</span>
+                <span className="text-body">Profile</span>
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
+              >
+                <span className="inline-block w-6 mr-3">🥷🏻</span>
+                <span className="text-body">Profile</span>
+              </button>
+            )}
           </li>
           <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
-              <span className="inline-block w-6 mr-3">🥷🏻</span>
-              <span className="text-body">Profile</span>
-            </a>
+            {hasUser ? (
+              <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+                <span className="inline-block w-6 mr-3">🚩</span>
+                <span className="text-body">Notifications</span>
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
+              >
+                <span className="inline-block w-6 mr-3">🚩</span>
+                <span className="text-body">Notifications</span>
+              </button>
+            )}
           </li>
           <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
-              <span className="inline-block w-6 mr-3">🚩</span>
-              <span className="text-body">Notifications</span>
-            </a>
+            {hasUser ? (
+              <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+                <span className="inline-block w-6 mr-3">☠️</span>
+                <span className="text-body">Stats</span>
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
+              >
+                <span className="inline-block w-6 mr-3">☠️</span>
+                <span className="text-body">Stats</span>
+              </button>
+            )}
           </li>
           <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
-              <span className="inline-block w-6 mr-3">☠️</span>
-              <span className="text-body">Stats</span>
-            </a>
-          </li>
-          <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
-              <span className="inline-block w-6 mr-3">⚙️</span>
-              <span className="text-body">Settings</span>
-            </a>
+            {hasUser ? (
+              <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+                <span className="inline-block w-6 mr-3">⚙️</span>
+                <span className="text-body">Settings</span>
+              </a>
+            ) : (
+              <button
+                disabled
+                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
+              >
+                <span className="inline-block w-6 mr-3">⚙️</span>
+                <span className="text-body">Settings</span>
+              </button>
+            )}
           </li>
           <li>
             <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">

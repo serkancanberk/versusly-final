@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useRef } from "react";
 import ClashCard from "./ClashCard";
+import { useNavigate } from "react-router-dom";
 
 const mockUserId = "6620a0c1f3f6a6abc1234567"; // Mock user ID for testing
 
 const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
+  const navigate = useNavigate();
   const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
+  console.log("ClashFeed props:", { user, titleValue });
   const [supportingArgument, setSupportingArgument] = useState("");
   const [selectedSide, setSelectedSide] = useState("A");
   const [showDetailedForm, setShowDetailedForm] = useState(false);
@@ -259,6 +262,10 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // "Start A New Clash" butonuna tıklandığında detaylı formu göster
   const handleStartNewClash = () => {
+    if (!user) {
+      alert("Lütfen önce giriş yapın.");
+      return;
+    }
     setShowDetailedForm(true);
     // İlk kez formu açarken başlıkları güncelle
     updateSideTitles(titleValue);
@@ -266,6 +273,10 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Clash'i yayınla
   const handleReleaseClash = async () => {
+    if (!user) {
+      alert("Lütfen önce giriş yapın.");
+      return;
+    }
     // Ensure any tag currently typed but not submitted is included
     const finalTags = tagInput.trim()
       ? Array.from(new Set([...tags, tagInput.trim()]))
@@ -290,10 +301,12 @@ const ClashFeed = ({ selectedTag, user }) => {
 
     try {
       setIsLoading(true);
+      const token = localStorage.getItem("token");
       const response = await fetch('http://localhost:8080/api/clashes', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
         },
         body: JSON.stringify(newClash)
       });
@@ -397,25 +410,31 @@ const ClashFeed = ({ selectedTag, user }) => {
                 <div className="relative group">
                   <button
                     className="w-8 h-8 bg-muted25 text-secondary text-caption rounded-full flex items-center justify-center"
-                    onClick={getRandomVs}
+                    onClick={user ? getRandomVs : undefined}
+                    disabled={!user}
                   >
                     ✨
                   </button>
                   <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                    Get Help From AI
+                    {user ? "Get Help From AI" : "Sign in to start!"}
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex justify-end">
-              <button
-                className="px-6 py-2 mt-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto"
-                disabled={!titleValue}
-                style={{ opacity: titleValue ? 1 : 0.75 }}
-                onClick={handleStartNewClash}
-              >
-                Start A New Clash ⚔️
-              </button>
+              <div className="relative group inline-block">
+                <button
+                  className="px-6 py-2 mt-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 w-auto"
+                  disabled={!titleValue || !user}
+                  style={{ opacity: titleValue && user ? 1 : 0.5 }}
+                  onClick={handleStartNewClash}
+                >
+                  Start A New Clash ⚔️
+                </button>
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  {!user ? "Sign in to start!" : ""}
+                </div>
+              </div>
             </div>
           </>
         ) : (
@@ -649,8 +668,9 @@ const ClashFeed = ({ selectedTag, user }) => {
                 <button
                   className="px-4 py-2 sm:px-6 sm:py-3 bg-primary text-sm sm:text-label text-secondary rounded-md hover:bg-opacity-75"
                   onClick={handleReleaseClash}
-                  disabled={!titleValue.trim() || !statement.trim()}
-                  style={{ opacity: titleValue.trim() && statement.trim() ? 1 : 0.75 }}
+                  disabled={!user || !titleValue.trim() || !statement.trim()}
+                  style={{ opacity: user && titleValue.trim() && statement.trim() ? 1 : 0.5 }}
+                  title={!user ? "Lütfen giriş yapın" : ""}
                 >
                   Release This Clash ⚔️
                 </button>

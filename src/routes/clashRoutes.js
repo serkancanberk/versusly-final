@@ -2,6 +2,7 @@ import express from 'express';
 import axios from 'axios';
 import Clash from '../models/Clash.js'; // Clash modelini doğru bir şekilde import ediyoruz
 import { createClash } from '../controllers/clashController.js'; // <-- ADD THIS LINE
+import authenticateUser from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Tüm Clash'leri getirme (tag filtreli)
@@ -41,7 +42,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Yeni Clash oluşturma
-router.post('/', createClash);
+router.post('/', authenticateUser, createClash);
 
 // Clash güncelleme
 router.put('/:id', async (req, res) => {
@@ -80,7 +81,7 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Yeni bir argüman ekleme
-router.post('/:id/argument', async (req, res) => {
+router.post('/:id/argument', authenticateUser, async (req, res) => {
   const { text, author } = req.body;
   if (!text) {
     return res.status(400).json({ message: "Argument text is required" });
@@ -107,7 +108,7 @@ router.post('/:id/argument', async (req, res) => {
 });
 
 // Reaksiyon ekleme
-router.post('/:id/react', async (req, res) => {
+router.post('/:id/react', authenticateUser, async (req, res) => {
   const { reactionType } = req.body;
   const allowedReactions = ["nailed_it", "fair_point", "neutral", "really", "try_again"];
   if (!allowedReactions.includes(reactionType)) {

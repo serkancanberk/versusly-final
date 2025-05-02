@@ -1,7 +1,5 @@
 import dotenv from 'dotenv';
 dotenv.config();
-console.log("Loaded GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
-console.log("Loaded JWT_SECRET:", process.env.JWT_SECRET);
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';

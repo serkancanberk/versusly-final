@@ -20,9 +20,9 @@ function App() {
           return res.json();
         })
         .then(data => {
-          if (data && data.user) {
-            setUser(data.user);
-          }
+          // backend may return user object directly or wrapped as { user }
+          const userData = data.user || data;
+          setUser(userData);
         })
         .catch(err => console.error("Failed to fetch user:", err));
     }

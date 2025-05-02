@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator }) {
+  const hasUser = Boolean(localStorage.getItem("token"));
   console.log("Received props:", { title, statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
@@ -234,10 +235,10 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           {/* Dropdown Menü */}
           {showDropdown && (
             <div className="absolute right-0 mt-1 py-2 w-40 bg-white rounded-md shadow-lg z-20">
-              <button 
-                className="flex w-full items-center px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={handleReport}
-              >
+          <button
+            className="flex w-full items-center px-4 py-2 text-sm text-secondary opacity-50 cursor-not-allowed"
+            disabled={!hasUser}
+          >
                 <span className="mr-2">⚠️</span>
                 <span>Report</span>
               </button>
@@ -329,25 +330,6 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           </>
         )}
 
-        {/* Render tags at the bottom of the card always */}
-        {(() => {
-          // Defensive log for tags before rendering
-          console.log("Rendering tags array:", Array.isArray(tags), tags);
-          return (
-            Array.isArray(tags) && tags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 mt-2">
-                {tags.slice(0, 3).map((tag, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary"
-                  >
-                    🏷️ {tag}
-                  </span>
-                ))}
-              </div>
-            )
-          );
-        })()}
 
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
@@ -358,16 +340,26 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
       <div className="px-4 pt-0 pb-4 space-y-2">
         <div className="flex justify-between gap-2">
           {/* React Button */}
-          <div className="flex-1 relative" ref={menuRefs.current.react}>
-            <button 
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
-              onMouseEnter={handleReactButtonHover}
-              onMouseLeave={handleButtonMouseLeave}
-            >
-              <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
-              <span>{selectedReaction ? selectedReaction.label : "React"}</span>
-            </button>
-            {activeMenu === "react" && (
+          <div className="flex-1 relative">
+            <div className="relative group w-full">
+              <button
+                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                onMouseEnter={hasUser ? handleReactButtonHover : undefined}
+                onMouseLeave={handleButtonMouseLeave}
+                // no disabled attribute so always enabled
+              >
+                <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
+                <span>{selectedReaction ? selectedReaction.label : "React"}</span>
+              </button>
+              {/* Tooltip for React button if not logged in */}
+              {!hasUser && (
+                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+                  Sign in to react!
+                </div>
+              )}
+            </div>
+            {hasUser && activeMenu === "react" && (
+              // existing reactions menu code unchanged
               <div 
                 className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
                 onMouseEnter={() => setActiveMenu("react")}
@@ -392,28 +384,31 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
           {/* Arguments Button */}
           <div className="flex-1 relative" ref={menuRefs.current.arguments}>
-            <button
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
-              onMouseEnter={handleArgumentsButtonHover}
-              onMouseLeave={handleButtonMouseLeave}
-              onClick={handleArgumentsClick}
-            >
-              <span>🤺</span>
-              <span>Args ({argumentCount})</span>
-            </button>
-            {activeMenu === "arguments" && (
-              <div
-                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
-                onMouseEnter={() => setActiveMenu("arguments")}
-                onMouseLeave={() => setActiveMenu(null)}
+            <div className="relative group w-full">
+              <button
+                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                onMouseEnter={handleArgumentsButtonHover}
+                onMouseLeave={handleButtonMouseLeave}
+                onClick={handleArgumentsClick}
+                disabled={!hasUser}
               >
-                <div className="text-caption text-secondary whitespace-nowrap">
-                  {argumentCount === 0
-                    ? "No arguments yet – strike the first one."
-                    : `${argumentCount} arguments swang.`}
+                <span>🤺</span>
+                <span>Args ({argumentCount})</span>
+              </button>
+              {activeMenu === "arguments" && (
+                <div
+                  className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
+                  onMouseEnter={() => setActiveMenu("arguments")}
+                  onMouseLeave={() => setActiveMenu(null)}
+                >
+                  <div className="text-caption text-secondary whitespace-nowrap">
+                    {argumentCount === 0
+                      ? "No arguments yet – strike the first one."
+                      : `${argumentCount} arguments swang.`}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
 
           {/* Share Button */}
@@ -425,37 +420,22 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
               onClick={copyToClipboard}
             >
               <span>🔗</span>
-              <span>Share</span>
+              <span>{copied ? "Link Copied!" : "Copy Link"}</span>
             </button>
-            {activeMenu === "share" && (
-              <div 
-                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
-                onMouseEnter={() => setActiveMenu("share")}
-                onMouseLeave={() => setActiveMenu(null)}
-              >
-                <div className="flex items-center space-x-2">
-                  {copied ? (
-                    <div className="flex items-center space-x-1 hover:scale-105 transition-transform">
-                      <span className="text-xl">✅</span>
-                      <span className="text-xs text-secondary whitespace-nowrap font-medium">Link Copied!</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-start hover:scale-105 transition-transform">
-                      <span className="text-sm text-secondary truncate max-w-36">{clashUrl}</span>
-                      <span className="text-xs text-mutedDark">Tap to copy</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Check This CTA */}
         <div className="w-full">
-          <button className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75">
-            Jump into the fire 🔥
-          </button>
+          <div className="relative group w-full">
+            <button
+              className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75"
+              // removed disabled={!hasUser} so always enabled
+            >
+              Jump into the fire 🔥
+            </button>
+            {/* Tooltip removed from here */}
+          </div>
         </div>
       </div>
     </div>
