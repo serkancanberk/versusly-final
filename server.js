@@ -1,5 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
+console.log("Loaded GOOGLE_CLIENT_ID:", process.env.GOOGLE_CLIENT_ID);
+console.log("Loaded JWT_SECRET:", process.env.JWT_SECRET);
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
@@ -37,13 +39,14 @@ process.on('unhandledRejection', (reason, promise) => {
   // Log but don't shutdown for unhandled rejections
 });
 
-// CORS ayarlarını yapıyoruz
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: false
-}));
+// Configure CORS
+const corsOptions = {
+  origin: "http://localhost:5173",
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  credentials: true,
+};
+app.use(cors(corsOptions));
 
 app.use(express.json());
 

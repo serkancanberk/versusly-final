@@ -1,8 +1,31 @@
 import React from "react";
+import { useState, useEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
 const RightSidebar = ({ onTagClick, selectedTag }) => {
   // GoogleLogin handles login internally
+
+  const [profile, setProfile] = useState(null);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("http://localhost:8080/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized");
+          return res.json();
+        })
+        .then(data => setProfile(data.user || data))
+        .catch(() => setProfile(null));
+    }
+  }, []);
 
   return (
     <div className="p-4 pl-6 pr-4 flex flex-col h-full">
@@ -114,33 +137,45 @@ const RightSidebar = ({ onTagClick, selectedTag }) => {
         <p className="text-label text-muted-dark mb-4">
           From hot takes to showdowns — pick a side and make it count.
         </p>
-        <div className="mt-3 mb-2">
-          <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              const token = credentialResponse.credential;
-              fetch("http://localhost:8080/api/auth/google", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ token }),
-              })
-                .then((res) => res.json())
-                .then((data) => {
-                  console.log("Backend response:", data);
-                  localStorage.setItem("versusly_user", JSON.stringify(data.user));
-                  // Optionally store user data or token in localStorage/sessionStorage here
-                })
-                .catch((err) => {
-                  console.error("Error sending token to backend:", err);
-                });
-            }}
-            onError={() => {
-              console.log("Login Failed");
-            }}
-            size="large"
-          />
-        </div>
+        {profile ? (
+          <div className="flex items-center space-x-3 mb-4">
+            <img src={profile.picture} alt={profile.name} className="w-10 h-10 rounded-full" />
+            <div>
+              <p className="font-semibold text-body">{profile.name}</p>
+              <p className="text-caption text-muted">{profile.email}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-3 mb-2">
+            {isClient && (
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  const token = credentialResponse.credential;
+                  fetch("http://localhost:8080/api/auth/google", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ token }),
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      console.log("Backend response:", data);
+                      localStorage.setItem("token", data.token);
+                      setProfile(data.user);
+                    })
+                    .catch((err) => {
+                      console.error("Error sending token to backend:", err);
+                    });
+                }}
+                onError={() => {
+                  console.log("Login Failed");
+                }}
+                size="large"
+              />
+            )}
+          </div>
+        )}
         <button className="w-full px-3 py-3 mt-2 mb-2 bg-muted25 text-label text-secondary rounded-lg hover:shadow-md hover:bg-opacity-75">
           Rejoin
         </button>

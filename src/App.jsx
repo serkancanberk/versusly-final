@@ -1,33 +1,30 @@
 // src/App.jsx
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainFeed from "./pages/MainFeed";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 function App() {
-  const [user, setUser] = React.useState(null);
+  const [user, setUser] = useState(null);
 
-  React.useEffect(() => {
-    const storedUser = localStorage.getItem("versusly_user");
-    if (storedUser && storedUser !== "undefined") {
-      try {
-        const userObj = JSON.parse(storedUser);
-        setUser(userObj);
-        fetch("http://localhost:8080/api/auth/me", {
-          credentials: "include",
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      fetch("http://localhost:8080/api/auth/me", {
+        headers: {
+          "Authorization": `Bearer ${token}`
+        }
+      })
+        .then(res => {
+          if (!res.ok) throw new Error("Unauthorized");
+          return res.json();
         })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data && data.user) {
-              setUser(data.user);
-              localStorage.setItem("versusly_user", JSON.stringify(data.user));
-            }
-          })
-          .catch((err) => console.error("Failed to fetch user:", err));
-      } catch (e) {
-        console.warn("Could not parse stored user:", e);
-        localStorage.removeItem("versusly_user");
-      }
+        .then(data => {
+          if (data && data.user) {
+            setUser(data.user);
+          }
+        })
+        .catch(err => console.error("Failed to fetch user:", err));
     }
   }, []);
 
@@ -38,14 +35,14 @@ function App() {
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ access_token: tokenResponse.access_token })
+        body: JSON.stringify({ token: tokenResponse.credential || tokenResponse.access_token })
       });
 
       if (!res.ok) throw new Error("Failed to authenticate");
 
       const userData = await res.json();
-      setUser(userData);
-      localStorage.setItem("versusly_user", JSON.stringify(userData));
+      setUser(userData.user);
+      localStorage.setItem("token", userData.token);
     } catch (err) {
       console.error("Login error:", err);
     }
