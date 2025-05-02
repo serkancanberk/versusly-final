@@ -10,7 +10,10 @@ const clashSchema = new mongoose.Schema({
   vs_title: String,
   vs_statement: String,
   vs_argument: String,
-  tags: [String],
+  tags: {
+    type: [String],
+    default: []
+  },
   creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
   votes: [],
   status: { type: String, default: 'active' },

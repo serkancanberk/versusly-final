@@ -1,6 +1,7 @@
 import express from 'express';
 import axios from 'axios';
 import Clash from '../models/Clash.js'; // Clash modelini doğru bir şekilde import ediyoruz
+import { createClash } from '../controllers/clashController.js'; // <-- ADD THIS LINE
 const router = express.Router();
 
 // Tüm Clash'leri getirme (tag filtreli)
@@ -19,6 +20,7 @@ router.get('/', async (req, res) => {
       .skip(offset)
       .limit(limit);
 
+    console.log("Clashes fetched from DB:", clashes);
     res.json(clashes);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -39,32 +41,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Yeni Clash oluşturma
-router.post('/', async (req, res) => {
-  const { vs_title, vs_statement, vs_argument, creator, duration } = req.body;
-
-  // Validation: duration (süre) geçerli bir sayı olmalı
-  if (!duration || isNaN(duration) || duration <= 0) {
-    return res.status(400).json({ message: "Invalid duration" });
-  }
-
-  const clash = new Clash({
-    vs_title,
-    vs_statement,
-    vs_argument,
-    creator: creator || null, // Eğer creator belirtilmemişse null olarak bırakıyoruz
-    votes: [],
-    status: "active",
-    expires_at: new Date(Date.now() + duration * 60 * 60 * 1000), // Süreyi saat olarak alıyoruz
-    duration,
-  });
-
-  try {
-    const newClash = await clash.save(); // Clash'i veritabanına kaydediyoruz
-    res.status(201).json(newClash); // Yeni Clash'i JSON formatında döndürüyoruz
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-});
+router.post('/', createClash);
 
 // Clash güncelleme
 router.put('/:id', async (req, res) => {

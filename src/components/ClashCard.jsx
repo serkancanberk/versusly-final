@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 
 export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator }) {
+  console.log("Received props:", { title, statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
@@ -185,6 +186,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
   useEffect(() => {
     console.log("RAW createdAt from props:", createdAt);
+    console.log("Full ClashCard props:", { title, statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
     if (createdAt && typeof createdAt === "string") {
       try {
         const parsedDate = new Date(createdAt);
@@ -194,7 +196,10 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
       }
     }
   }, [createdAt]);
-  console.log("createdAt:", createdAt);
+  // Debug tags prop
+  useEffect(() => {
+    console.log("ClashCard tags prop:", tags);
+  }, [tags]);
   return (
     <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300">
       {/* Header */}
@@ -260,6 +265,8 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
         {/* Clash info block */}
         {(() => {
           const expires = new Date(expires_at);
+          // Defensive log for tags before rendering
+          console.log("Rendering tags array:", Array.isArray(tags), tags);
           if (!expires_at || !(expires instanceof Date) || isNaN(expires.getTime())) {
             return (
               <div className="flex flex-wrap items-center gap-2 mt-1">
@@ -267,7 +274,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
                   <span className="mr-1">⚠️</span>
                   <span>Invalid expiration date</span>
                 </div>
-                {tags && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
+                {Array.isArray(tags) && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
                   <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
                     🏷️ {tag}
                   </span>
@@ -305,7 +312,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
                   <span className="text-alert">{timePart}</span>
                 </span>
               </div>
-              {tags && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
+              {Array.isArray(tags) && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
                 <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
                   🏷️ {tag}
                 </span>
@@ -314,21 +321,36 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           );
         })()}
 
-        {/* Removed second redundant static info block */}
-
         {/* Statement ve Argument */}
         <h2 className="text-subheading text-secondary mt-1">{statement}</h2>
         {argument && (
           <>
-
             <h3 className="text-body text-secondary mt-1">{argument}</h3>
           </>
         )}
 
+        {/* Render tags at the bottom of the card always */}
+        {(() => {
+          // Defensive log for tags before rendering
+          console.log("Rendering tags array:", Array.isArray(tags), tags);
+          return (
+            Array.isArray(tags) && tags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2 mt-2">
+                {tags.slice(0, 3).map((tag, index) => (
+                  <span
+                    key={index}
+                    className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary"
+                  >
+                    🏷️ {tag}
+                  </span>
+                ))}
+              </div>
+            )
+          );
+        })()}
+
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
-
-        {/* Removed animated message block */}
 
       </div>
 

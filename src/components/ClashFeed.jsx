@@ -51,6 +51,7 @@ const ClashFeed = ({ selectedTag, user }) => {
         `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}${tagParam}`
       );
       const data = await res.json();
+      console.log("Fetched Clashes:", JSON.stringify(data, null, 2)); // for clarity
       if (data.length === 0) {
         setHasMore(false);
       } else {
@@ -265,6 +266,10 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Clash'i yayınla
   const handleReleaseClash = async () => {
+    // Ensure any tag currently typed but not submitted is included
+    const finalTags = tagInput.trim()
+      ? Array.from(new Set([...tags, tagInput.trim()]))
+      : tags;
     const expires_at = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     const newClash = {
       vs_title: titleValue,
@@ -274,8 +279,14 @@ const ClashFeed = ({ selectedTag, user }) => {
       status: "active",
       duration: 24,
       expires_at,
-      tags
+      tags: finalTags
     };
+
+    console.log("Tag input value:", tagInput);
+    console.log("Existing tags array:", tags);
+    console.log("Final tags:", finalTags);
+    console.log("Full newClash payload being sent:", JSON.stringify(newClash, null, 2));
+    console.log("Submitting Clash:", newClash);
 
     try {
       setIsLoading(true);
@@ -289,6 +300,7 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       if (response.ok) {
         const created = await response.json();
+        console.log("Created clash from backend response:", created);
         // Yeni clash'i en üste ekle
         setClashList(prev => [created, ...prev]);
         // Formu sıfırla
@@ -302,7 +314,8 @@ const ClashFeed = ({ selectedTag, user }) => {
         setTagInput("");
         setShowDetailedForm(false);
       } else {
-        console.error("Failed to create clash:", await response.text());
+        const errorText = await response.text();
+        console.error("Failed to create clash:", errorText);
       }
     } catch (err) {
       console.error("Error creating clash:", err);
@@ -685,21 +698,25 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       {/* Clash Cards */}
       <div className="space-y-4 sm:space-y-6 px-6 sm:px-10 pt-2">
-        {clashList.map((clash, index) => (
-          <ClashCard
-            key={`${clash._id}-${index}`}
-            title={clash.vs_title}
-            statement={clash.vs_statement}
-            argument={clash.vs_argument}
-            argumentCount={clash.arguments?.length || 0}
-            reactions={clash.reactions}
-            expires_at={clash.expires_at}
-            tags={clash.tags}
-            createdAt={clash.createdAt || clash.created_at}
-            username={clash.creator?.username || "@username_A"}
-            userImage={clash.creator?.profileImage || "https://randomuser.me/api/portraits/women/1.jpg"}
-          />
-        ))}
+        {clashList.map((clash, index) => {
+          // Debug: ensure tags are present and not undefined
+          console.log("ClashCard tags prop:", clash.tags);
+          return (
+            <ClashCard
+              key={`${clash._id}-${index}`}
+              title={clash.vs_title}
+              statement={clash.vs_statement}
+              argument={clash.vs_argument}
+              argumentCount={clash.arguments?.length || 0}
+              reactions={clash.reactions}
+              expires_at={clash.expires_at}
+              tags={clash.tags}
+              createdAt={clash.createdAt || clash.created_at}
+              username={clash.creator?.username || "@username_A"}
+              userImage={clash.creator?.profileImage || "https://randomuser.me/api/portraits/women/1.jpg"}
+            />
+          );
+        })}
         
         {/* Loader Bölümü */}
         <div 
