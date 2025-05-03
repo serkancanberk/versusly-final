@@ -3,6 +3,7 @@ import axios from 'axios';
 import Clash from '../models/Clash.js'; // Clash modelini doğru bir şekilde import ediyoruz
 import { createClash } from '../controllers/clashController.js'; // <-- ADD THIS LINE
 import authenticateUser from "../middleware/authMiddleware.js";
+
 const router = express.Router();
 
 // Tüm Clash'leri getirme (tag filtreli)
@@ -43,6 +44,7 @@ router.get('/:id', async (req, res) => {
 
 // Yeni Clash oluşturma
 router.post('/', authenticateUser, createClash);
+
 
 // Clash güncelleme
 router.put('/:id', async (req, res) => {
@@ -134,46 +136,21 @@ router.post('/:id/react', authenticateUser, async (req, res) => {
   }
 });
 
-router.post('/suggest-tags', async (req, res) => {
-  const { title } = req.body;
-
-  if (!title || title.trim() === "") {
-    return res.status(400).json({ message: "Title is required for tag suggestion." });
+router.post('/evaluate', authenticateUser, async (req, res) => {
+  const OPENAI_API_URL = process.env.OPENAI_API_URL;
+  if (!OPENAI_API_URL) {
+    return res.status(500).json({ message: "OPENAI_API_URL is not defined in .env" });
   }
-
   try {
-    const openaiRes = await axios.post(
-      "https://api.openai.com/v1/chat/completions",
-      {
-        model: "gpt-3.5-turbo",
-        messages: [
-          {
-            role: "system",
-            content: "You are a helpful assistant that generates 3-5 short, fun and relevant topic tags based on a title for a debate or versus content. Return only an array of tags."
-          },
-          {
-            role: "user",
-            content: `Suggest topic tags for the debate title: "${title}"`
-          }
-        ],
-        max_tokens: 100,
-        temperature: 0.7
-      },
-      {
-        headers: {
-          "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
-          "Content-Type": "application/json"
-        }
+    const response = await axios.post(OPENAI_API_URL, req.body, {
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
       }
-    );
-
-    const tagResponse = openaiRes.data.choices[0].message.content;
-    const tags = JSON.parse(tagResponse);
-
-    res.json({ tags });
-  } catch (err) {
-    console.error("OpenAI tag suggestion error:", err.message);
-    res.status(500).json({ message: "Failed to generate tags." });
+    });
+    res.json(response.data);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

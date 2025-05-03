@@ -23,4 +23,18 @@ router.get("/me", authenticateUser, async (req, res) => {
   }
 });
 
+router.post("/logout", (req, res) => {
+  // Clear the auth cookie
+  res.clearCookie('auth_token', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  });
+  res.json({ message: "Logged out successfully" });
+});
+
+router.get("/status", authenticateUser, (req, res) => {
+  res.json({ isAuthenticated: true });
+});
+
 export default router;

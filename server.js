@@ -3,10 +3,13 @@ dotenv.config();
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import clashRoutes from './src/routes/clashRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
 
 const app = express();
+// Trust first proxy (needed for secure cookies when behind a proxy)
+app.set('trust proxy', 1);
 let server; // Server instance'ını global olarak tutuyoruz
 
 // Graceful shutdown function
@@ -37,14 +40,20 @@ process.on('unhandledRejection', (reason, promise) => {
   // Log but don't shutdown for unhandled rejections
 });
 
-// Configure CORS
+// Configure CORS - Ensure proper cookie sharing between frontend and backend
 const corsOptions = {
   origin: "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  credentials: true,
+  credentials: true, // This is critical for cookies
+  exposedHeaders: ["set-cookie"],
 };
 app.use(cors(corsOptions));
+// Enable preflight across all routes
+app.options('*', cors(corsOptions));
+
+// Parse cookies from incoming requests
+app.use(cookieParser());
 
 app.use(express.json());
 

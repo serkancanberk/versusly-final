@@ -37,10 +37,17 @@ export const handleGoogleLogin = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    // Respond with user and token
+    // Set HTTP-only cookie with JWT token
+    res.cookie('auth_token', jwtToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      sameSite: 'lax', // Helps with CSRF protection
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+    });
+
+    // Respond with user data (but no token in the response body)
     return res.status(200).json({
       message: "User authenticated",
-      token: jwtToken,
       user: {
         _id: user._id,
         name: user.name,

@@ -2,11 +2,22 @@ import jwt from "jsonwebtoken";
 
 const authenticateUser = (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization || "";
-    if (!authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ message: "No token provided" });
+    let token;
+    const authHeader = req.headers.authorization;
+    
+    // Check for token in Authorization header
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split(" ")[1];
+    } 
+    // Check for token in cookies
+    else if (req.cookies && req.cookies.auth_token) {
+      token = req.cookies.auth_token;
     }
-    const token = authHeader.split(" ")[1];
+    
+    if (!token) {
+      return res.status(401).json({ message: "No authentication token found" });
+    }
+
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
     next();
