@@ -1,13 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 
-export default function ClashCard({ title, statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator }) {
-  const hasUser = Boolean(localStorage.getItem("token"));
-  console.log("Received props:", { title, statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
+export default function ClashCard({ vs_title, vs_statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator, user }) {
+  const isLoggedIn = Boolean(user);
+  console.log("Received props:", { vs_title, vs_statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator, user });
+  const safeTitle = vs_title || "Untitled Clash";
+  const safeStatement = vs_statement || "No statement provided.";
+  const safeArgument = argument || "No argument yet.";
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
-    { emoji: "🤷", label: "Can’t Decide", description: "Neutral stance" },
+    { emoji: "🤷", label: "Can't Decide", description: "Neutral stance" },
     { emoji: "🙄", label: "Really?", description: "Skeptical" },
     { emoji: "🗑️", label: "Try Again", description: "Not convinced" }
   ];
@@ -166,6 +169,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
   
   // Reaksiyon seçme işlemi
   const handleReactionSelect = (reaction) => {
+    if (!isLoggedIn) return;
     setSelectedReaction(reaction);
     setActiveMenu(null);
     // Burada seçilen reaksiyonu backend'e gönderme işlemi yapılabilir
@@ -174,6 +178,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
   // Report işlemi
   const handleReport = () => {
+    if (!isLoggedIn) return;
     console.log("Clash reported");
     setShowDropdown(false);
     // Burada gerçek bir raporlama işlemi yapılabilir
@@ -187,7 +192,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
   useEffect(() => {
     console.log("RAW createdAt from props:", createdAt);
-    console.log("Full ClashCard props:", { title, statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
+    console.log("Full ClashCard props:", { vs_title, vs_statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
     if (createdAt && typeof createdAt === "string") {
       try {
         const parsedDate = new Date(createdAt);
@@ -197,12 +202,14 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
       }
     }
   }, [createdAt]);
+
   // Debug tags prop
   useEffect(() => {
     console.log("ClashCard tags prop:", tags);
   }, [tags]);
+
   return (
-    <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300">
+    <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300 relative">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
@@ -235,13 +242,28 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           {/* Dropdown Menü */}
           {showDropdown && (
             <div className="absolute right-0 mt-1 py-2 w-40 bg-white rounded-md shadow-lg z-20">
-          <button
-            className="flex w-full items-center px-4 py-2 text-sm text-secondary opacity-50 cursor-not-allowed"
-            disabled={!hasUser}
-          >
-                <span className="mr-2">⚠️</span>
-                <span>Report</span>
-              </button>
+              {isLoggedIn ? (
+                <button
+                  className="flex w-full items-center px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                  onClick={handleReport}
+                >
+                  <span className="mr-2">⚠️</span>
+                  <span>Report</span>
+                </button>
+              ) : (
+                <div className="relative group">
+                  <button
+                    className="flex w-full items-center px-4 py-2 text-sm text-secondary opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    <span className="mr-2">⚠️</span>
+                    <span>Report</span>
+                  </button>
+                  <div className="absolute right-full mr-2 top-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Login required
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -258,28 +280,38 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
 
       {/* İçerik */}
       <div className="p-4 space-y-4">
-        {/* Küçük başlık */}
-        <div className="flex items-center space-x-2 text-label text-secondary">
-          <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
-          <span className="text-body font-bold">{title}</span>
+        {/* Title and Tags */}
+        <div className="flex flex-wrap items-center gap-2 mb-2">
+          <div className="flex items-center space-x-2 text-label text-secondary">
+            <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
+            <span className="text-body font-bold">{safeTitle}</span>
+          </div>
+          {Array.isArray(tags) && tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {tags.slice(0, 3).map((tag, index) => (
+                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
+                  🏷️ {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
+
         {/* Clash info block */}
         {(() => {
-          const expires = new Date(expires_at);
-          // Defensive log for tags before rendering
-          console.log("Rendering tags array:", Array.isArray(tags), tags);
-          if (!expires_at || !(expires instanceof Date) || isNaN(expires.getTime())) {
+          // Defensive parsing for expires_at
+          let expires = null;
+          if (typeof expires_at === "string" || typeof expires_at === "number" || expires_at instanceof Date) {
+            expires = new Date(expires_at);
+          }
+          const validDate = expires instanceof Date && !isNaN(expires.getTime());
+          if (!validDate) {
             return (
               <div className="flex flex-wrap items-center gap-2 mt-1">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2">
                   <span className="mr-1">⚠️</span>
                   <span>Invalid expiration date</span>
                 </div>
-                {Array.isArray(tags) && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
-                  <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
-                    🏷️ {tag}
-                  </span>
-                ))}
               </div>
             );
           }
@@ -313,84 +345,59 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
                   <span className="text-alert">{timePart}</span>
                 </span>
               </div>
-              {Array.isArray(tags) && tags.length > 0 && tags.slice(0, 3).map((tag, index) => (
-                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
-                  🏷️ {tag}
-                </span>
-              ))}
             </div>
           );
         })()}
 
-        {/* Statement ve Argument */}
-        <h2 className="text-subheading text-secondary mt-1">{statement}</h2>
-        {argument && (
-          <>
-            <h3 className="text-body text-secondary mt-1">{argument}</h3>
-          </>
-        )}
-
+        {/* Statement and Argument */}
+        <h2 className="text-subheading text-secondary mt-1">{safeStatement}</h2>
+        <h3 className="text-body text-secondary mt-1">{safeArgument}</h3>
 
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
-
       </div>
 
-      {/* Footer Aksiyonları (Refactored for mobile UX and alignment) */}
+      {/* Footer Aksiyonları */}
       <div className="px-4 pt-0 pb-4 space-y-2">
         <div className="flex justify-between gap-2">
           {/* React Button */}
           <div className="flex-1 relative">
             <div className="relative group w-full">
-              <button
-                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
-                onMouseEnter={hasUser ? handleReactButtonHover : undefined}
-                onMouseLeave={handleButtonMouseLeave}
-                // no disabled attribute so always enabled
-              >
-                <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
-                <span>{selectedReaction ? selectedReaction.label : "React"}</span>
-              </button>
-              {/* Tooltip for React button if not logged in */}
-              {!hasUser && (
-                <div className="absolute bottom-full mb-2 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
-                  Sign in to react!
+              {isLoggedIn ? (
+                <button
+                  className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                  onMouseEnter={handleReactButtonHover}
+                  onMouseLeave={handleButtonMouseLeave}
+                >
+                  <span>{selectedReaction ? selectedReaction.emoji : "🤔"}</span>
+                  <span>{selectedReaction ? selectedReaction.label : "React"}</span>
+                </button>
+              ) : (
+                <div className="relative group">
+                  <button
+                    className="w-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed"
+                    disabled
+                  >
+                    <span>🤔</span>
+                    <span>React</span>
+                  </button>
+                  <div className="absolute bottom-full mb-1 left-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                    Login to react
+                  </div>
                 </div>
               )}
             </div>
-            {hasUser && activeMenu === "react" && (
-              // existing reactions menu code unchanged
-              <div 
-                className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn"
-                onMouseEnter={() => setActiveMenu("react")}
-                onMouseLeave={() => setActiveMenu(null)}
-              >
-                <div className="flex gap-3 justify-between">
-                  {safeReactions.map((reaction, index) => (
-                    <button
-                      key={index}
-                      className="flex flex-col items-center justify-center hover:scale-110 transition-transform p-1 hover:bg-muted25 rounded-lg"
-                      onClick={() => handleReactionSelect(reaction)}
-                      title={reaction.description}
-                    >
-                      <span className="text-xl mb-1">{reaction.emoji}</span>
-                      <span className="text-xs text-mutedDark whitespace-nowrap">{reaction.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Arguments Button */}
           <div className="flex-1 relative" ref={menuRefs.current.arguments}>
             <div className="relative group w-full">
               <button
-                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
                 onMouseEnter={handleArgumentsButtonHover}
                 onMouseLeave={handleButtonMouseLeave}
                 onClick={handleArgumentsClick}
-                disabled={!hasUser}
+                disabled={!isLoggedIn}
               >
                 <span>🤺</span>
                 <span>Args ({argumentCount})</span>
@@ -414,7 +421,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           {/* Share Button */}
           <div className="flex-1 relative" ref={menuRefs.current.share}>
             <button 
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2" 
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2" 
               onMouseEnter={handleShareButtonHover}
               onMouseLeave={handleButtonMouseLeave}
               onClick={copyToClipboard}
@@ -422,6 +429,35 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
               <span>🔗</span>
               <span>{copied ? "Link Copied!" : "Copy Link"}</span>
             </button>
+            {/* Share Menu: Now positioned relative to the button */}
+            {activeMenu === "share" && (
+              <div
+                className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 bg-white rounded-lg shadow-xl p-3 z-30 animate-fadeIn"
+                // left-1/2 and -translate-x-1/2 centers above the button
+              >
+                <div className="flex flex-col space-y-3 min-w-[200px]">
+                  <button
+                    className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors"
+                    onClick={copyToClipboard}
+                  >
+                    <span>📋</span>
+                    <span>{copied ? "Copied!" : "Copy Link"}</span>
+                  </button>
+                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
+                    <span>𝕏</span>
+                    <span>Share to X</span>
+                  </button>
+                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
+                    <span>📱</span>
+                    <span>WhatsApp</span>
+                  </button>
+                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
+                    <span>📨</span>
+                    <span>Email</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -430,7 +466,7 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           <div className="relative group w-full">
             <button
               className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75"
-              // removed disabled={!hasUser} so always enabled
+              // removed disabled={!isLoggedIn} so always enabled
             >
               Jump into the fire 🔥
             </button>
@@ -438,6 +474,28 @@ export default function ClashCard({ title, statement, argument, argumentCount = 
           </div>
         </div>
       </div>
+
+      {/* React Menu */}
+      {activeMenu === "react" && (
+        <div
+          ref={menuRefs.current.react}
+          className="absolute left-4 bottom-16 bg-white rounded-lg shadow-xl p-3 z-30 grid grid-cols-5 gap-2 animate-fadeIn"
+        >
+          {safeReactions.map((reaction, index) => (
+            <button
+              key={index}
+              className={`flex flex-col items-center justify-center p-2 hover:bg-muted25 rounded-md transition-colors ${
+                !isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
+              onClick={() => isLoggedIn && handleReactionSelect(reaction)}
+              disabled={!isLoggedIn}
+            >
+              <span className="text-2xl">{reaction.emoji}</span>
+              <span className="text-xs text-center mt-1">{reaction.label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

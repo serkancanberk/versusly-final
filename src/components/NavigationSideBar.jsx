@@ -1,9 +1,9 @@
 import React from "react";
 
-const NavigationSideBar = () => {
-  const hasUser = Boolean(localStorage.getItem("token"));
+const NavigationSideBar = ({ user }) => {
+  const isLoggedIn = Boolean(user);
   return (
-    <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0">
+    <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0 overflow-hidden">
       {/* Logo Bölümü */}
       <div className="flex items-center py-4 mb-10 pl-2">
         <span className="text-subheading text-secondary mr-2">⚔️</span>
@@ -20,67 +20,75 @@ const NavigationSideBar = () => {
             </a>
           </li>
           <li>
-            {hasUser ? (
+            {isLoggedIn ? (
               <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
                 <span className="inline-block w-6 mr-3">🥷🏻</span>
                 <span className="text-body">Profile</span>
               </a>
             ) : (
-              <button
-                disabled
-                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
-              >
-                <span className="inline-block w-6 mr-3">🥷🏻</span>
-                <span className="text-body">Profile</span>
-              </button>
+              <div className="relative group">
+                <button
+                  disabled
+                  className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent w-full"
+                >
+                  <span className="inline-block w-6 mr-3">🥷🏻</span>
+                  <span className="text-body">Profile</span>
+                </button>
+              </div>
             )}
           </li>
           <li>
-            {hasUser ? (
+            {isLoggedIn ? (
               <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
                 <span className="inline-block w-6 mr-3">🚩</span>
                 <span className="text-body">Notifications</span>
               </a>
             ) : (
-              <button
-                disabled
-                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
-              >
-                <span className="inline-block w-6 mr-3">🚩</span>
-                <span className="text-body">Notifications</span>
-              </button>
+              <div className="relative group">
+                <button
+                  disabled
+                  className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent w-full"
+                >
+                  <span className="inline-block w-6 mr-3">🚩</span>
+                  <span className="text-body">Notifications</span>
+                </button>
+              </div>
             )}
           </li>
           <li>
-            {hasUser ? (
+            {isLoggedIn ? (
               <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
                 <span className="inline-block w-6 mr-3">☠️</span>
                 <span className="text-body">Stats</span>
               </a>
             ) : (
-              <button
-                disabled
-                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
-              >
-                <span className="inline-block w-6 mr-3">☠️</span>
-                <span className="text-body">Stats</span>
-              </button>
+              <div className="relative group">
+                <button
+                  disabled
+                  className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent w-full"
+                >
+                  <span className="inline-block w-6 mr-3">☠️</span>
+                  <span className="text-body">Stats</span>
+                </button>
+              </div>
             )}
           </li>
           <li>
-            {hasUser ? (
+            {isLoggedIn ? (
               <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
                 <span className="inline-block w-6 mr-3">⚙️</span>
                 <span className="text-body">Settings</span>
               </a>
             ) : (
-              <button
-                disabled
-                className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent"
-              >
-                <span className="inline-block w-6 mr-3">⚙️</span>
-                <span className="text-body">Settings</span>
-              </button>
+              <div className="relative group">
+                <button
+                  disabled
+                  className="flex items-center text-secondary opacity-50 cursor-not-allowed pl-2 bg-transparent w-full"
+                >
+                  <span className="inline-block w-6 mr-3">⚙️</span>
+                  <span className="text-body">Settings</span>
+                </button>
+              </div>
             )}
           </li>
           <li>

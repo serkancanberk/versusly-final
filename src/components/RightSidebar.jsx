@@ -2,28 +2,13 @@ import React from "react";
 import { useState, useEffect } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 
-const RightSidebar = ({ onTagClick, selectedTag, setUser }) => {
+const RightSidebar = ({ onTagClick, selectedTag, user, setUser }) => {
   // GoogleLogin handles login internally
-
-  const [profile, setProfile] = useState(null);
   const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  useEffect(() => {
-    if (!isClient) return;
-    fetch("http://localhost:8080/api/auth/me", {
-      credentials: "include"
-    })
-      .then(res => {
-        if (!res.ok) throw new Error("Unauthorized");
-        return res.json();
-      })
-      .then(data => setProfile(data.user || data))
-      .catch(() => setProfile(null));
-  }, [isClient]);
 
   return (
     <div className="p-4 pl-6 pr-4 flex flex-col h-full">
@@ -141,17 +126,17 @@ const RightSidebar = ({ onTagClick, selectedTag, setUser }) => {
         <p className="text-label text-muted-dark mb-4">
           From hot takes to showdowns — pick a side and make it count.
         </p>
-        {profile ? (
+        {user ? (
           <div className="relative md:sticky top-4 bg-white p-4 rounded-lg shadow-lg border border-muted mb-4">
             <div className="flex items-center space-x-3">
               <img
-                src={profile.picture}
-                alt={profile.name}
+                src={user.picture}
+                alt={user.name}
                 className="w-10 h-10 rounded-full ring-2 ring-accent"
               />
               <div>
-                <p className="font-semibold text-body">{profile.name}</p>
-                <p className="text-caption text-mutedDark">{profile.email}</p>
+                <p className="font-semibold text-body">{user.name}</p>
+                <p className="text-caption text-mutedDark">{user.email}</p>
               </div>
             </div>
             <button
@@ -160,7 +145,6 @@ const RightSidebar = ({ onTagClick, selectedTag, setUser }) => {
                   method: "POST",
                   credentials: "include"
                 }).finally(() => {
-                  setProfile(null);
                   setUser(null);
                   window.location.href = "/";
                 });
@@ -186,7 +170,6 @@ const RightSidebar = ({ onTagClick, selectedTag, setUser }) => {
                   })
                     .then((res) => res.json())
                     .then((data) => {
-                      setProfile(data.user);
                       setUser(data.user);
                     })
                     .catch(() => {});

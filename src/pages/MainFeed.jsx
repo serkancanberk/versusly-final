@@ -26,7 +26,7 @@ const MainFeed = ({ user, setUser }) => {
         {/* Navigation Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[18%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-          <NavigationSidebar />
+          <NavigationSidebar user={user} />
           </div>
         </div>
 
