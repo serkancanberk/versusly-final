@@ -1,6 +1,6 @@
 import React from "react";
 
-const NavigationSideBar = ({ user }) => {
+const NavigationSidebar = ({ user }) => {
   const isLoggedIn = Boolean(user);
   return (
     <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0 overflow-hidden">
@@ -145,4 +145,4 @@ const NavigationSideBar = ({ user }) => {
   );
 };
 
-export default NavigationSideBar;
+export default NavigationSidebar;

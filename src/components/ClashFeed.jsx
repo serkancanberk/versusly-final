@@ -20,6 +20,8 @@ const ClashFeed = ({ selectedTag, user }) => {
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
   const isLoggedIn = Boolean(user);
+  const [titleError, setTitleError] = useState("");
+  const [statementError, setStatementError] = useState("");
   
   // Tag input state
   const [tags, setTags] = useState([]);
@@ -32,9 +34,9 @@ const ClashFeed = ({ selectedTag, user }) => {
   const handleTagInputKeyDown = (e) => {
     if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
       e.preventDefault();
-      if (!tags.includes(tagInput.trim())) {
-        setTags([...tags, tagInput.trim()]);
-      }
+      const trimmed = tagInput.trim();
+      if (trimmed.length > 20 || tags.length >= 5 || tags.includes(trimmed)) return;
+      setTags([...tags, trimmed]);
       setTagInput("");
     }
   };
@@ -44,16 +46,37 @@ const ClashFeed = ({ selectedTag, user }) => {
   };
 
 
+  // Sort by dropdown için state
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [sortOption, setSortOption] = useState("newest"); // default: newest
+  const sortMenuRef = useRef(null);
+
+  // Add useEffect to force-call fetchClashes on mount regardless of user
+  useEffect(() => {
+    console.log("✅ Force-calling fetchClashes on mount regardless of user");
+    fetchClashes();
+  }, []);
+
   // Fetch clashes with pagination, sort option, and tag filter
   const fetchClashes = async () => {
+    console.log("✅ fetchClashes() CALLED!");
+    console.log("fetchClashes called, current state:", {
+      isLoading,
+      hasMore,
+      offset: offsetRef.current,
+      clashListLength: clashList.length
+    });
+    
     setIsLoading(true);
     try {
       // Add a short delay to make loading feel smoother
       await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ms delay
       const tagParam = selectedTag ? `&tag=${encodeURIComponent(selectedTag)}` : "";
+      // Debug log for sort option
+      console.log("Fetching clashes with sort option:", sortOption);
       // Explicitly use the correct server path (not relying on relative paths)
       const res = await fetch(
-        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}${tagParam}`,
+        `http://localhost:8080/api/clashes?sort=${(sortOption || 'newest') === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}${tagParam}`,
         {
           credentials: 'include',
           headers: {
@@ -61,24 +84,65 @@ const ClashFeed = ({ selectedTag, user }) => {
           }
         }
       );
-      const data = await res.json();
-      console.log("Fetched Clashes Raw:", data);
+
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const text = await res.text();
+      console.log("Raw response from /api/clashes:", text);
+
+      let data;
+      try {
+        data = JSON.parse(text);
+        console.log("Parsed data:", data);
+      } catch (parseError) {
+        console.error("🚨 Failed to parse /api/clashes response as JSON:", parseError);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!Array.isArray(data)) {
+        console.error("🚨 Expected array but got:", typeof data);
+        setIsLoading(false);
+        return;
+      }
+
       if (data.length === 0) {
+        console.log("No more clashes to load");
         setHasMore(false);
       } else {
-        const transformedData = data
-          .filter(item => item.vs_title && item.vs_statement && item.vs_argument)
-          .map(item => ({
+        const transformedData = data.map(item => {
+          const title = item.vs_title || item.title || "";
+          const statement = item.vs_statement || item.statement || "";
+
+          if (!title || !statement) {
+            console.warn("Skipping invalid clash item due to missing title or statement:", item);
+            return null;
+          }
+
+          return {
             ...item,
-            vs_title: item.vs_title || item.title || "Untitled Clash",
-            vs_statement: item.vs_statement || item.statement || "No statement provided.",
-            vs_argument: item.vs_argument || item.argument || "No argument yet.",
-          }));
-        setClashList(prev => [...prev, ...transformedData]);
+            vs_title: title,
+            vs_statement: statement,
+            vs_argument: item.vs_argument || item.argument || "",
+          };
+        }).filter(Boolean);
+
+        console.log("Transformed data:", transformedData);
+
+        setClashList(prev => {
+          const newItems = transformedData.filter(
+            (item) => !prev.some((existing) => String(existing._id) === String(item._id))
+          );
+          console.log("New items to add:", newItems);
+          return [...prev, ...newItems];
+        });
         offsetRef.current += 5;
       }
     } catch (err) {
       console.error("Error fetching clashes:", err);
+      setHasMore(false); // Stop trying to load more on error
     } finally {
       setIsLoading(false);
     }
@@ -111,16 +175,14 @@ const ClashFeed = ({ selectedTag, user }) => {
     };
   }, [hasMore, isLoading]);
 
-  // Initial fetch
+  // Initial fetch and also refetch when sortOption changes
   useEffect(() => {
     offsetRef.current = 0;
+    setClashList([]);
+    setHasMore(true);
+    fetchClashes();
     // eslint-disable-next-line
-  }, []);
-  
-  // Sort by dropdown için state
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [sortOption, setSortOption] = useState("newest"); // default: newest
-  const sortMenuRef = useRef(null);
+  }, [sortOption]);
 
   // Side A ve Side B için dinamik başlıklar
   const [sideATitle, setSideATitle] = useState("Side A");
@@ -268,14 +330,17 @@ const ClashFeed = ({ selectedTag, user }) => {
   // Release clash function - submit detailed form
   const handleReleaseClash = async () => {
     if (!isLoggedIn) return;
-    
+
+    setTitleError("");
+    setStatementError("");
+
     if (!titleValue.trim()) {
-      alert("Please enter a title for your clash!");
+      setTitleError("Please enter a title for your clash!");
       return;
     }
 
-    if (!supportingArgument.trim()) {
-      alert("Please provide a supporting argument!");
+    if (!statement.trim()) {
+      setStatementError("Please add your bold statement!");
       return;
     }
 
@@ -284,12 +349,13 @@ const ClashFeed = ({ selectedTag, user }) => {
     try {
       // Prepare data for submission
       const clashData = {
-        title: titleValue,
-        statement: statement || titleValue, // Use title if statement is empty
+        vs_title: titleValue,
+        vs_statement: statement,
+        vs_argument: supportingArgument,
         side: selectedSide,
-        argument: supportingArgument, 
         tags: tags,
-        userId: user._id // Use the actual user ID from the user prop
+        userId: user._id,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 saat sonrası
       };
 
       // Send POST request to create clash
@@ -312,11 +378,11 @@ const ClashFeed = ({ selectedTag, user }) => {
       // Clear form and reset states
       handleClearForm();
       
-      // Refresh the clash list to include the new clash
-      setClashList([]);
-      setHasMore(true);
-      offsetRef.current = 0;
-      fetchClashes();
+      // Prepend the new clash to the current list, filtering out any duplicate _id
+      setClashList(prev => {
+        const filtered = prev.filter(item => String(item._id) !== String(result._id));
+        return [result, ...filtered];
+      });
       
     } catch (error) {
       console.error("Error creating clash:", error);
@@ -359,14 +425,12 @@ const ClashFeed = ({ selectedTag, user }) => {
     setStatement(statements[randomIndex]);
   };
   
-  // Effect to fetch clashes when filters change or on initial load
-  useEffect(() => {
-    fetchClashes();
-    // eslint-disable-next-line
-  }, [selectedTag]);
 
+
+  // Debug: log the current clashList before rendering
+  console.log("Rendering ClashFeed with clashList:", clashList);
   return (
-    <div className="min-h-screen bg-muted25">
+    <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#d6d3cd_1px,_transparent_1px)] bg-[length:12px_12px]">
       {/* Title and description above feed (moved above input area) */}
       <div className="px-4 pt-20 pb-1 mb-1">
         <h1 className="text-subheading text-secondary flex items-center gap-2">
@@ -411,7 +475,7 @@ const ClashFeed = ({ selectedTag, user }) => {
             </div>
             {!isLoggedIn && (
               <div className="absolute left-0 bottom-full mb-2 bg-secondary text-white text-caption px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
-                Login to create a clash
+                Sign in to create a clash
               </div>
             )}
           </div>
@@ -434,23 +498,29 @@ const ClashFeed = ({ selectedTag, user }) => {
             {/* VS başlığı */}
             <div className="mb-4">
               <label htmlFor="title-vs-input" className="block text-caption text-mutedDark mb-1">Title of VS</label>
-              <div className="flex space-x-2">
+              <div className="relative">
                 <input
                   id="title-vs-input"
                   type="text"
                   placeholder="e.g. Xbox vs PlayStation"
-                  className="w-full px-3 py-2 border border-muted rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+                  className="w-full pr-10 px-3 py-2 bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none"
                   value={titleValue}
                   onChange={handleTitleChange}
                   onKeyPress={handleKeyPress}
+                  maxLength={80}
                 />
-                <button 
-                  className="text-mutedDark hover:text-secondary transition-colors"
+                <button
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-mutedDark hover:text-secondary transition-colors"
                   onClick={getRandomVs}
+                  type="button"
+                  tabIndex={-1}
                 >
                   🎲
                 </button>
               </div>
+              {titleError && (
+                <p className="text-alert text-caption mt-1">{titleError}</p>
+              )}
             </div>
 
             {/* Side selector buttons */}
@@ -458,10 +528,10 @@ const ClashFeed = ({ selectedTag, user }) => {
               <label className="block text-caption text-mutedDark mb-1">Pick your side</label>
               <div className="flex space-x-3">
                 <button
-                  className={`flex-1 py-2 px-3 rounded-md border ${
+                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border ${
                     selectedSide === "A" 
                       ? "border-accent bg-accent text-white" 
-                      : "border-muted text-secondary"
+                      : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
                   onClick={() => handleSideChange("A")}
                 >
@@ -471,10 +541,10 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </div>
                 </button>
                 <button
-                  className={`flex-1 py-2 px-3 rounded-md border ${
+                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border ${
                     selectedSide === "B" 
-                      ? "border-alert bg-alert text-white" 
-                      : "border-muted text-secondary"
+                      ? "border-accent bg-accent text-white" 
+                      : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
                   onClick={() => handleSideChange("B")}
                 >
@@ -486,31 +556,37 @@ const ClashFeed = ({ selectedTag, user }) => {
               </div>
             </div>
 
-            {/* Statement input (optional) */}
+            {/* Statement input */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-1">
                 <label htmlFor="statement-input" className="block text-caption text-mutedDark">
-                  Statement (optional)
+                  Statement
                 </label>
                 <button
                   className="text-caption text-mutedDark hover:text-secondary bg-transparent border-none"
                   onClick={generateMockStatement}
+                  type="button"
                 >
-                  Generate ✨
+                  Get help from AI to create ✨
                 </button>
               </div>
               <textarea
                 id="statement-input"
                 placeholder="Why do you think your side is better?"
-                className="w-full px-3 py-2 border border-muted rounded-md focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-none px-3 py-2"
                 rows="2"
                 value={statement}
                 onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
+                maxLength={200}
               ></textarea>
+              {statementError && (
+                <p className="text-alert text-caption mt-1">{statementError}</p>
+              )}
             </div>
 
             {/* Supporting argument */}
+            {false && (
             <div className="mb-4">
               <label htmlFor="supporting-argument-input" className="block text-caption text-mutedDark mb-1">
                 Supporting argument
@@ -518,13 +594,15 @@ const ClashFeed = ({ selectedTag, user }) => {
               <textarea
                 id="supporting-argument-input"
                 placeholder="Make your case! What's your supporting argument?"
-                className="w-full px-3 py-2 border border-muted rounded-md focus:outline-none focus:ring-1 focus:ring-accent resize-none"
+                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted focus:outline-none resize-none px-3 py-2"
                 rows="3"
                 value={supportingArgument}
                 onChange={handleSupportingArgChange}
                 onKeyPress={handleKeyPress}
+                maxLength={300}
               ></textarea>
             </div>
+            )}
 
             {/* Tags input */}
             <div className="mb-4">
@@ -538,6 +616,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                     <button 
                       className="ml-1 text-mutedDark hover:text-alert"
                       onClick={() => handleTagRemove(tag)}
+                      type="button"
                     >
                       ✕
                     </button>
@@ -548,17 +627,18 @@ const ClashFeed = ({ selectedTag, user }) => {
                 id="tags-input"
                 type="text"
                 placeholder="Add tags separated by comma or Enter"
-                className="w-full px-3 py-2 border border-muted rounded-md focus:outline-none focus:ring-1 focus:ring-accent"
+                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted focus:outline-none px-3 py-2"
                 value={tagInput}
                 onChange={handleTagInputChange}
                 onKeyDown={handleTagInputKeyDown}
+                maxLength={100}
               />
             </div>
 
             {/* Submit button */}
             <div className="flex justify-end">
               <button
-                className={`px-4 py-2 bg-accent text-white rounded-md ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90'}`}
+                className={`px-6 py-4 bg-accent text-bgashwhite text-label rounded-2xl ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90'}`}
                 onClick={handleReleaseClash}
                 disabled={isLoading}
               >
@@ -571,8 +651,8 @@ const ClashFeed = ({ selectedTag, user }) => {
 
 
       {/* Sort dropdown and options */}
-      <div className="p-4 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
-        <h2 className="text-body text-secondary">Clash Feed</h2>
+      <div className="p-8 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
+        <h2 className="text-body text-secondary">Highlighted Clashes</h2>
         <div className="relative" ref={sortMenuRef}>
           <button 
             className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
@@ -603,25 +683,30 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       {/* Clash list */}
       <div className="space-y-6 px-4 bg-bgashwhite">
-        {clashList.length > 0 && clashList.map((clash, index) => (
-          <div key={clash._id || index}>
-            <ClashCard
-              vs_title={clash.vs_title}
-              vs_statement={clash.vs_statement}
-              argument={clash.vs_argument}
-              argumentCount={clash.argumentCount}
-              reactions={clash.reactions}
-              tags={clash.tags}
-              expires_at={clash.expires_at}
-              createdAt={clash.createdAt}
-              creator={clash.creator}
-              user={user}
-            />
-          </div>
-        ))}
-        {!isLoading && clashList.length === 0 && (
+        {/* <div className="px-4 text-sm text-secondary">
+          Debug: {clashList.length} clashes loaded
+        </div> */}
+        {Array.isArray(clashList) && clashList.length > 0 ? clashList.map((clash) => {
+          console.log("Rendering clash:", clash);
+          return clash && clash._id ? (
+            <div key={clash._id}>
+              <ClashCard
+                vs_title={clash.vs_title}
+                vs_statement={clash.vs_statement}
+                argument={clash.vs_argument || (clash.arguments?.[0]?.text || "")}
+                argumentCount={clash.argumentCount}
+                reactions={clash.reactions}
+                tags={clash.tags}
+                expires_at={clash.expires_at}
+                createdAt={clash.createdAt}
+                creator={clash.creator}
+                user={user}
+              />
+            </div>
+          ) : null;
+        }) : (
           <div className="p-4 text-center text-body text-muted">
-            No clashes found. Create the first one!
+            {isLoading ? "Loading..." : "No clashes found. Create the first one!"}
           </div>
         )}
       </div>

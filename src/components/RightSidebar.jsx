@@ -130,9 +130,9 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser }) => {
           <div className="relative md:sticky top-4 bg-white p-4 rounded-lg shadow-lg border border-muted mb-4">
             <div className="flex items-center space-x-3">
               <img
-                src={user.picture}
-                alt={user.name}
-                className="w-10 h-10 rounded-full ring-2 ring-accent"
+                src={user?.picture || "/default-avatar.png"}
+                alt={user?.name || "User Avatar"}
+                className="w-10 h-10 rounded-full ring-2 ring-accent object-cover"
               />
               <div>
                 <p className="font-semibold text-body">{user.name}</p>

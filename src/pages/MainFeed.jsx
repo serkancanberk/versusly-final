@@ -1,7 +1,7 @@
 // src/pages/MainFeed.jsx
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import NavigationSidebar from '../components/NavigationSideBar';
+import NavigationSidebar from '../components/NavigationSidebar';
 import ClashFeed from '../components/ClashFeed';
 import RightSidebar from '../components/RightSidebar';
 import Header from '../components/Header';
@@ -32,7 +32,8 @@ const MainFeed = ({ user, setUser }) => {
 
         {/* Center Feed - Scrollable */}
         <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
-          <ClashFeed selectedTag={selectedTag} user={user} />
+          {console.log("✅ MainFeed is rendering ClashFeed with user:", user)}
+          <ClashFeed selectedTag={selectedTag} user={user} sortBy="newest" />
         </div>
 
         {/* Right Sidebar - Hidden on mobile */}

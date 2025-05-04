@@ -9,9 +9,7 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,
-        secure: false,
-        // rewrite cookies from upstream to your local dev domain
-        cookieDomainRewrite: ''
+        secure: false
       }
     }
   },

@@ -6,7 +6,7 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
   console.log("Received props:", { vs_title, vs_statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator, user });
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
-  const safeArgument = argument || "No argument yet.";
+  const safeArgument = typeof argument === "string" ? argument : "";
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
@@ -351,7 +351,9 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
 
         {/* Statement and Argument */}
         <h2 className="text-subheading text-secondary mt-1">{safeStatement}</h2>
-        <h3 className="text-body text-secondary mt-1">{safeArgument}</h3>
+        {safeArgument && (
+          <h3 className="text-body text-secondary mt-1">{safeArgument}</h3>
+        )}
 
         {/* Dotted Separator */}
         <div className="border-t border-dotted border-muted my-4" />
@@ -375,14 +377,14 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
               ) : (
                 <div className="relative group">
                   <button
-                    className="w-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed"
+                    className="w-full h-full flex flex-row items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed"
                     disabled
                   >
                     <span>🤔</span>
                     <span>React</span>
                   </button>
                   <div className="absolute bottom-full mb-1 left-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    Login to react
+                    Sign in to react
                   </div>
                 </div>
               )}

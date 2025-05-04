@@ -40,7 +40,7 @@ export const handleGoogleLogin = async (req, res) => {
     // Set HTTP-only cookie with JWT token
     res.cookie('auth_token', jwtToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // Use secure in production
+      secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost', // Disable secure cookies for localhost
       sameSite: 'lax', // Helps with CSRF protection
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
     });

@@ -22,30 +22,29 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is authenticated via cookies
-    fetch("http://localhost:8080/api/auth/me", {
-      credentials: "include", // Important: include cookies with the request
-    })
-      .then(res => {
+    const fetchUser = async () => {
+      try {
+        const res = await fetch("http://localhost:8080/api/auth/me", {
+          credentials: "include",
+        });
+
         if (!res.ok) {
-          if (res.status === 401) {
-            // User not authenticated, just set loading to false
-            return null;
-          }
-          throw new Error(`Error: ${res.status}`);
+          // Silently fail for unauthorized users
+          setLoading(false);
+          return;
         }
-        return res.json();
-      })
-      .then(data => {
-        if (data) {
-          setUser(data);
-        }
+
+        const data = await res.json();
+        setUser(data);
         setLoading(false);
-      })
-      .catch(err => {
+        console.log("Fetched user:", data);
+      } catch (err) {
         console.error("Failed to fetch user:", err);
         setLoading(false);
-      });
+      }
+    };
+
+    fetchUser();
   }, []);
 
   const handleLoginSuccess = async (tokenResponse) => {
@@ -75,6 +74,7 @@ function App() {
   return (
     <GoogleOAuthProvider clientId="1029737867034-qmg1mcdd1h5vpjc6q6riu65rod8pnit4.apps.googleusercontent.com">
       <Router>
+        {console.log("🧭 Inside Routes, rendering path:", window.location.pathname)}
         <Routes>
           <Route path="/" element={<MainFeed user={user} setUser={setUser} />} />
         </Routes>
