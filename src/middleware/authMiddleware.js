@@ -20,6 +20,7 @@ const authenticateUser = (req, res, next) => {
 
     const payload = jwt.verify(token, process.env.JWT_SECRET);
     req.user = payload;
+    req.user._id = payload.id || payload._id;
     next();
   } catch (error) {
     console.error("Authentication error:", error);

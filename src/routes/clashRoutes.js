@@ -17,10 +17,13 @@ router.get('/', async (req, res) => {
     const tag = req.query.tag;
     const filter = tag ? { tags: { $in: [tag] } } : {};
 
+    console.log("Query parameters:", { offset, limit, sortField, sortOrder, tag });
+
     const clashes = await Clash.find(filter)
-      .sort({ [sortField]: sortOrder })
+      .sort({ [sortField]: sortOrder, _id: -1 })
       .skip(offset)
-      .limit(limit);
+      .limit(limit)
+      .populate("creator", "name picture email");
 
     console.log("Clashes fetched from DB:", clashes);
     res.json(clashes);
@@ -82,28 +85,25 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-// Yeni bir argüman ekleme
-router.post('/:id/argument', authenticateUser, async (req, res) => {
-  const { text, author } = req.body;
-  if (!text) {
-    return res.status(400).json({ message: "Argument text is required" });
+// Yeni bir argüman ekleme (güncel versiyon)
+router.post('/:id/arguments', authenticateUser, async (req, res) => {
+  const { text, side } = req.body;
+  const user = req.user._id;
+
+  if (!text || !side) {
+    return res.status(400).json({ message: "Both text and side are required" });
   }
+
   try {
     const clash = await Clash.findById(req.params.id);
     if (!clash) {
       return res.status(404).json({ message: "Clash not found" });
     }
-    // Argümanlar dizisi yoksa başlat
-    if (!Array.isArray(clash.arguments)) {
-      clash.arguments = [];
-    }
-    clash.arguments.push({
-      text,
-      author: author || null,
-      created_at: new Date()
-    });
+
+    clash.arguments.push({ user, text, side, createdAt: new Date() });
     await clash.save();
-    res.json(clash.arguments);
+
+    res.status(200).json({ message: "Argument added", arguments: clash.arguments });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

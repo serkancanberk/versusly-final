@@ -10,8 +10,7 @@ export const createClash = async (req, res) => {
       expires_at,
       duration,
       reactions = {},
-      status = "active",
-      creator,
+      status = "active"
     } = req.body;
 
     const rawTags = Array.isArray(tags) ? tags : [];
@@ -26,7 +25,7 @@ export const createClash = async (req, res) => {
       duration,
       reactions,
       status,
-      creator,
+      creator: req.user._id,
     });
 
     console.log("Formatted Tags:", formattedTags);
@@ -36,21 +35,31 @@ export const createClash = async (req, res) => {
     await newClash.save();
     console.log("Saved clash:", newClash);
 
-    console.log("Final clash object sent in response:", newClash);
-    res.status(201).json(newClash);
+    // Populate the creator field before sending the response
+    const populatedClash = await Clash.findById(newClash._id).populate("creator", "name picture email");
+    console.log("Final clash object sent in response:", populatedClash);
+    res.status(201).json(populatedClash);
   } catch (error) {
     console.error("Error creating clash:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const getAllClashes = async (req, res) => {
+export const getClashes = async (req, res) => {
   try {
-    const clashes = await Clash.find();
-    console.log("Fetched clashes:", clashes);
+    const limit = parseInt(req.query.limit) || 5;
+    const offset = parseInt(req.query.offset) || 0;
+
+    const clashes = await Clash.find()
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .populate("creator", "name picture email");
+
+    console.log("Fetched clashes with pagination:", clashes);
     res.status(200).json(clashes);
   } catch (error) {
-    console.error("Error fetching clashes:", error);
+    console.error("Error fetching paginated clashes:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

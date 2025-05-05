@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 
-export default function ClashCard({ vs_title, vs_statement, argument, argumentCount = 0, reactions, expires_at, tags = [], createdAt, creator, user }) {
+export default function ClashCard({ vs_title, vs_statement, tags = [], arguments: argumentList = [], argumentCount = 0, reactions, expires_at, createdAt, creator, user }) {
   const isLoggedIn = Boolean(user);
-  console.log("Received props:", { vs_title, vs_statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator, user });
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
-  const safeArgument = typeof argument === "string" ? argument : "";
+  const safeArgument = argumentList.length > 0 ? argumentList[0].text : "";
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
@@ -173,13 +172,11 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
     setSelectedReaction(reaction);
     setActiveMenu(null);
     // Burada seçilen reaksiyonu backend'e gönderme işlemi yapılabilir
-    console.log(`Selected reaction: ${reaction.emoji} - ${reaction.label}`);
   };
 
   // Report işlemi
   const handleReport = () => {
     if (!isLoggedIn) return;
-    console.log("Clash reported");
     setShowDropdown(false);
     // Burada gerçek bir raporlama işlemi yapılabilir
     alert("Clash has been reported");
@@ -187,16 +184,14 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
 
   // Arguments button click handler
   const handleArgumentsClick = () => {
-    console.log("Go to argument details");
+    // Intentionally left blank or add navigation logic here
   };
 
   useEffect(() => {
-    console.log("RAW createdAt from props:", createdAt);
-    console.log("Full ClashCard props:", { vs_title, vs_statement, argument, tags, createdAt, argumentCount, reactions, expires_at, creator });
     if (createdAt && typeof createdAt === "string") {
       try {
         const parsedDate = new Date(createdAt);
-        console.log("Parsed createdAt:", parsedDate.toISOString());
+        // parsedDate can be used for further logic if needed
       } catch (err) {
         console.error("Error parsing createdAt:", err);
       }
@@ -205,7 +200,7 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
 
   // Debug tags prop
   useEffect(() => {
-    console.log("ClashCard tags prop:", tags);
+    // tags effect, can be used for further logic if needed
   }, [tags]);
 
   return (
@@ -214,12 +209,14 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center space-x-3">
           <img
-            src={(creator?.profileImage) || "https://randomuser.me/api/portraits/women/1.jpg"}
-            alt="Profile"
+            src={creator?.picture || "https://randomuser.me/api/portraits/men/75.jpg"}
+            alt={creator?.name || "Profile"}
             className="w-10 h-10 rounded-full object-cover"
           />
           <div className="flex flex-col">
-            <span className="text-body text-secondary">@{creator?.username || "anonymous"}</span>
+            <span className="text-body text-secondary">
+              {creator?.name || "anonymous"}
+            </span>
             <span className="text-caption text-mutedDark">
               {(() => {
                 const date = new Date(createdAt);
@@ -287,13 +284,24 @@ export default function ClashCard({ vs_title, vs_statement, argument, argumentCo
             <span className="text-body font-bold">{safeTitle}</span>
           </div>
           {Array.isArray(tags) && tags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {tags.slice(0, 3).map((tag, index) => (
-                <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
-                  🏷️ {tag}
-                </span>
-              ))}
-            </div>
+            (() => {
+              const displayedTags = tags.slice(0, 2);
+              const remainingTagCount = tags.length - 2;
+              return (
+                <div className="flex flex-wrap gap-2">
+                  {displayedTags.map((tag, index) => (
+                    <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
+                      🏷️ {tag}
+                    </span>
+                  ))}
+                  {remainingTagCount > 0 && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
+                      +{remainingTagCount}
+                    </span>
+                  )}
+                </div>
+              );
+            })()
           )}
         </div>
 

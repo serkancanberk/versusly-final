@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import ClashCard from "./ClashCard";
 import { useNavigate } from "react-router-dom";
 
-const mockUserId = "6620a0c1f3f6a6abc1234567"; // Mock user ID for testing
 
 const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
@@ -10,7 +9,6 @@ const ClashFeed = ({ selectedTag, user }) => {
   const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
   console.log("ClashFeed props:", { user, titleValue });
-  const [supportingArgument, setSupportingArgument] = useState("");
   const [selectedSide, setSelectedSide] = useState("A");
   const [showDetailedForm, setShowDetailedForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -22,11 +20,11 @@ const ClashFeed = ({ selectedTag, user }) => {
   const isLoggedIn = Boolean(user);
   const [titleError, setTitleError] = useState("");
   const [statementError, setStatementError] = useState("");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   
   // Tag input state
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
-  // Tag input handlers
   const handleTagInputChange = (e) => {
     setTagInput(e.target.value);
   };
@@ -51,32 +49,18 @@ const ClashFeed = ({ selectedTag, user }) => {
   const [sortOption, setSortOption] = useState("newest"); // default: newest
   const sortMenuRef = useRef(null);
 
-  // Add useEffect to force-call fetchClashes on mount regardless of user
+  // Fetch only once on mount (no infinite scroll)
   useEffect(() => {
-    console.log("✅ Force-calling fetchClashes on mount regardless of user");
     fetchClashes();
+    // eslint-disable-next-line
   }, []);
 
-  // Fetch clashes with pagination, sort option, and tag filter
+  // Fetch only 20 items, once, and disable infinite scroll
   const fetchClashes = async () => {
-    console.log("✅ fetchClashes() CALLED!");
-    console.log("fetchClashes called, current state:", {
-      isLoading,
-      hasMore,
-      offset: offsetRef.current,
-      clashListLength: clashList.length
-    });
-    
     setIsLoading(true);
     try {
-      // Add a short delay to make loading feel smoother
-      await new Promise(resolve => setTimeout(resolve, 1000)); // 1000ms delay
-      const tagParam = selectedTag ? `&tag=${encodeURIComponent(selectedTag)}` : "";
-      // Debug log for sort option
-      console.log("Fetching clashes with sort option:", sortOption);
-      // Explicitly use the correct server path (not relying on relative paths)
       const res = await fetch(
-        `http://localhost:8080/api/clashes?sort=${(sortOption || 'newest') === 'hot' ? '-hotScore' : '-createdAt'}&limit=5&offset=${offsetRef.current}${tagParam}`,
+        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=20`,
         {
           credentials: 'include',
           headers: {
@@ -85,64 +69,37 @@ const ClashFeed = ({ selectedTag, user }) => {
         }
       );
 
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
       const text = await res.text();
-      console.log("Raw response from /api/clashes:", text);
-
       let data;
       try {
         data = JSON.parse(text);
-        console.log("Parsed data:", data);
       } catch (parseError) {
-        console.error("🚨 Failed to parse /api/clashes response as JSON:", parseError);
+        console.error("Failed to parse API response:", parseError);
         setIsLoading(false);
         return;
       }
 
       if (!Array.isArray(data)) {
-        console.error("🚨 Expected array but got:", typeof data);
+        console.error("API response is not an array:", data);
         setIsLoading(false);
         return;
       }
 
-      if (data.length === 0) {
-        console.log("No more clashes to load");
-        setHasMore(false);
-      } else {
-        const transformedData = data.map(item => {
-          const title = item.vs_title || item.title || "";
-          const statement = item.vs_statement || item.statement || "";
+      const transformedData = data.map(item => ({
+        ...item,
+        _id: String(item._id),
+        vs_title: item.vs_title || item.title || "",
+        vs_statement: item.vs_statement || item.statement || "",
+        vs_argument: item.vs_argument || item.argument || "",
+        creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null
+      })).filter(item => item.vs_title && item.vs_statement);
 
-          if (!title || !statement) {
-            console.warn("Skipping invalid clash item due to missing title or statement:", item);
-            return null;
-          }
-
-          return {
-            ...item,
-            vs_title: title,
-            vs_statement: statement,
-            vs_argument: item.vs_argument || item.argument || "",
-          };
-        }).filter(Boolean);
-
-        console.log("Transformed data:", transformedData);
-
-        setClashList(prev => {
-          const newItems = transformedData.filter(
-            (item) => !prev.some((existing) => String(existing._id) === String(item._id))
-          );
-          console.log("New items to add:", newItems);
-          return [...prev, ...newItems];
-        });
-        offsetRef.current += 5;
-      }
+      setClashList(transformedData);
+      setHasMore(false); // No more loading after initial batch
     } catch (err) {
       console.error("Error fetching clashes:", err);
-      setHasMore(false); // Stop trying to load more on error
     } finally {
       setIsLoading(false);
     }
@@ -157,23 +114,7 @@ const ClashFeed = ({ selectedTag, user }) => {
     fetchClashes();
   };
 
-  // IntersectionObserver for lazy loading (refactored to avoid repeated triggering)
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry.isIntersecting && hasMore && !isLoading) {
-          fetchClashes();
-        }
-      },
-      { threshold: 1.0 }
-    );
-    const currentLoader = loaderRef.current;
-    if (currentLoader) observer.observe(currentLoader);
-    return () => {
-      if (currentLoader) observer.unobserve(currentLoader);
-    };
-  }, [hasMore, isLoading]);
+  // (Infinite scroll IntersectionObserver removed - infinite scroll disabled)
 
   // Initial fetch and also refetch when sortOption changes
   useEffect(() => {
@@ -246,10 +187,6 @@ const ClashFeed = ({ selectedTag, user }) => {
     }
   };
 
-  // Supporting argument değiştiğinde çalışacak fonksiyon
-  const handleSupportingArgChange = (event) => {
-    setSupportingArgument(event.target.value);
-  };
 
   // Side seçimi değiştiğinde çalışacak fonksiyon
   const handleSideChange = (side) => {
@@ -351,10 +288,9 @@ const ClashFeed = ({ selectedTag, user }) => {
       const clashData = {
         vs_title: titleValue,
         vs_statement: statement,
-        vs_argument: supportingArgument,
         side: selectedSide,
         tags: tags,
-        userId: user._id,
+        creator: user?._id,
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 saat sonrası
       };
 
@@ -373,7 +309,6 @@ const ClashFeed = ({ selectedTag, user }) => {
       }
 
       const result = await response.json();
-      console.log("Clash created:", result);
 
       // Clear form and reset states
       handleClearForm();
@@ -383,9 +318,10 @@ const ClashFeed = ({ selectedTag, user }) => {
         const filtered = prev.filter(item => String(item._id) !== String(result._id));
         return [result, ...filtered];
       });
+      setShowSuccessMessage(true);
+      setTimeout(() => setShowSuccessMessage(false), 3000);
       
     } catch (error) {
-      console.error("Error creating clash:", error);
       alert("Failed to create clash. Please try again.");
     } finally {
       setIsLoading(false);
@@ -396,7 +332,6 @@ const ClashFeed = ({ selectedTag, user }) => {
   const handleClearForm = () => {
     setTitleValue("");
     setStatement("");
-    setSupportingArgument("");
     setSelectedSide("A");
     setShowDetailedForm(false);
     setTags([]);
@@ -425,18 +360,21 @@ const ClashFeed = ({ selectedTag, user }) => {
     setStatement(statements[randomIndex]);
   };
   
-
-
-  // Debug: log the current clashList before rendering
-  console.log("Rendering ClashFeed with clashList:", clashList);
+  // Success toast above main content
   return (
-    <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#d6d3cd_1px,_transparent_1px)] bg-[length:12px_12px]">
+    <>
+      {showSuccessMessage && (
+        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 text-caption px-4 py-2 rounded shadow z-50 transition-all duration-300">
+          ✅ Your clash has been released successfully!
+        </div>
+      )}
+      <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
       {/* Title and description above feed (moved above input area) */}
       <div className="px-4 pt-20 pb-1 mb-1">
         <h1 className="text-subheading text-secondary flex items-center gap-2">
           🔥 Clash Starts Here.
         </h1>
-        <p className="text-caption text-mutedDark">
+        <p className="text-label text-secondary opacity-50">
           Your bold statement meets its rival. AI scores both sides. The crowd decides.
         </p>
       </div>
@@ -585,24 +523,7 @@ const ClashFeed = ({ selectedTag, user }) => {
               )}
             </div>
 
-            {/* Supporting argument */}
-            {false && (
-            <div className="mb-4">
-              <label htmlFor="supporting-argument-input" className="block text-caption text-mutedDark mb-1">
-                Supporting argument
-              </label>
-              <textarea
-                id="supporting-argument-input"
-                placeholder="Make your case! What's your supporting argument?"
-                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted focus:outline-none resize-none px-3 py-2"
-                rows="3"
-                value={supportingArgument}
-                onChange={handleSupportingArgChange}
-                onKeyPress={handleKeyPress}
-                maxLength={300}
-              ></textarea>
-            </div>
-            )}
+            {/* Supporting argument removed */}
 
             {/* Tags input */}
             <div className="mb-4">
@@ -689,7 +610,7 @@ const ClashFeed = ({ selectedTag, user }) => {
         {Array.isArray(clashList) && clashList.length > 0 ? clashList.map((clash) => {
           console.log("Rendering clash:", clash);
           return clash && clash._id ? (
-            <div key={clash._id}>
+            <div key={clash._id} className="mb-4">
               <ClashCard
                 vs_title={clash.vs_title}
                 vs_statement={clash.vs_statement}
@@ -711,16 +632,23 @@ const ClashFeed = ({ selectedTag, user }) => {
         )}
       </div>
 
+      {/* Clash count info */}
+      {clashList.length > 0 && (
+        <div className="text-center text-caption text-muted py-2">
+          Showing {clashList.length} clash{clashList.length > 1 ? "es" : ""}
+        </div>
+      )}
       {/* Loading indicator */}
       {hasMore && (
         <div 
           ref={loaderRef} 
           className="p-4 text-center text-body text-muted"
         >
-          {isLoading && clashList.length > 0 ? "Loading more clashes..." : ""}
+          {isLoading && clashList.length > 0 ? "Loading more clashes..." : "Loader active"}
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
