@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
+import getStatusLabel from "../utils/statusLabel";
 
 export default function ClashCard({ vs_title, vs_statement, tags = [], arguments: argumentList = [], argumentCount = 0, reactions, expires_at, createdAt, creator, user }) {
   const isLoggedIn = Boolean(user);
@@ -30,6 +31,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
   // Menu yönetimi için state
   const [activeMenu, setActiveMenu] = useState(null); // "react", "share", "arguments" veya null
   const [copied, setCopied] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const menuTimeoutRef = useRef(null);
   const copyTimeoutRef = useRef(null);
   const menuRefs = useRef({
@@ -114,16 +116,6 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
     }, 300); // 300ms gecikme ile menüyü aç
   };
 
-  // Share butonuna hover
-  const handleShareButtonHover = () => {
-    if (menuTimeoutRef.current) {
-      clearTimeout(menuTimeoutRef.current);
-    }
-    
-    menuTimeoutRef.current = setTimeout(() => {
-      setActiveMenu("share");
-    }, 100); // 100ms gecikme ile menüyü aç (daha hızlı)
-  };
 
   // Arguments butonuna hover
   const handleArgumentsButtonHover = () => {
@@ -307,50 +299,30 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
 
         {/* Clash info block */}
         {(() => {
-          // Defensive parsing for expires_at
-          let expires = null;
-          if (typeof expires_at === "string" || typeof expires_at === "number" || expires_at instanceof Date) {
-            expires = new Date(expires_at);
-          }
-          const validDate = expires instanceof Date && !isNaN(expires.getTime());
-          if (!validDate) {
-            return (
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2">
-                  <span className="mr-1">⚠️</span>
-                  <span>Invalid expiration date</span>
-                </div>
-              </div>
-            );
-          }
+          const status = getStatusLabel({ createdAt, expires_at, argumentCount, reactions });
+          let emoji = "⚡";
+          if (status === "hot") emoji = "🤯";
+          else if (status === "finished") emoji = "⏰";
 
-          const now = new Date();
-          let timeDiffMs = expires - now;
-          if (timeDiffMs < 0) timeDiffMs = 0;
-          const timeDiffH = Math.floor(timeDiffMs / 1000 / 60 / 60);
-          const timeDiffM = Math.floor((timeDiffMs / 1000 / 60) % 60);
-
-          let info = "⚡ New Clash – ";
-          let timePart = `Last ${timeDiffH}h ${timeDiffM}m to join.`;
-
-          if (timeDiffMs <= 0) {
-            info = "⏰ Finished Clash – ";
+          let timePart = "";
+          if (status === "finished") {
             timePart = "Time's up to join.";
-          } else if (timeDiffH < 21) {
-            info = "💥 Hot Clash – ";
+          } else {
+            const expires = new Date(expires_at);
+            const now = new Date();
+            let timeDiffMs = expires - now;
+            if (timeDiffMs < 0) timeDiffMs = 0;
+            const timeDiffH = Math.floor(timeDiffMs / 1000 / 60 / 60);
+            const timeDiffM = Math.floor((timeDiffMs / 1000 / 60) % 60);
             timePart = `Last ${timeDiffH}h ${timeDiffM}m to join.`;
           }
 
-          let bgClass = "bg-muted25";
-          let textClass = "text-secondary";
-
           return (
             <div className="flex flex-wrap items-center gap-2 mt-1">
-              <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap ${bgClass} ${textClass} pl-2`}>
-                <span className="mr-1">{info.charAt(0)}</span>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2">
+                <span className="mr-1 font-sans not-italic" role="img" aria-label="icon">{emoji}</span>
                 <span>
-                  {info.slice(2)}
-                  <span className="text-alert">{timePart}</span>
+                  {status.charAt(0).toUpperCase() + status.slice(1)} Clash – <span className="text-alert">{timePart}</span>
                 </span>
               </div>
             </div>
@@ -379,16 +351,16 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
                   onMouseEnter={handleReactButtonHover}
                   onMouseLeave={handleButtonMouseLeave}
                 >
-                  <span>{selectedReaction ? selectedReaction.emoji : "🤔"}</span>
+                  <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
                   <span>{selectedReaction ? selectedReaction.label : "React"}</span>
                 </button>
               ) : (
                 <div className="relative group">
                   <button
-                    className="w-full h-full flex flex-row items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed"
+                    className="w-full h-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed py-2"
                     disabled
                   >
-                    <span>🤔</span>
+                    <span>👊</span>
                     <span>React</span>
                   </button>
                   <div className="absolute bottom-full mb-1 left-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
@@ -403,7 +375,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
           <div className="flex-1 relative" ref={menuRefs.current.arguments}>
             <div className="relative group w-full">
               <button
-                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
                 onMouseEnter={handleArgumentsButtonHover}
                 onMouseLeave={handleButtonMouseLeave}
                 onClick={handleArgumentsClick}
@@ -430,44 +402,15 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
 
           {/* Share Button */}
           <div className="flex-1 relative" ref={menuRefs.current.share}>
-            <button 
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2" 
-              onMouseEnter={handleShareButtonHover}
-              onMouseLeave={handleButtonMouseLeave}
+            <button
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+              onMouseEnter={() => setHovered(true)}
+              onMouseLeave={() => setHovered(false)}
               onClick={copyToClipboard}
             >
               <span>🔗</span>
-              <span>{copied ? "Link Copied!" : "Copy Link"}</span>
+              <span>{copied ? "Link copied!" : hovered ? "Tap to copy" : "Copy Link"}</span>
             </button>
-            {/* Share Menu: Now positioned relative to the button */}
-            {activeMenu === "share" && (
-              <div
-                className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 bg-white rounded-lg shadow-xl p-3 z-30 animate-fadeIn"
-                // left-1/2 and -translate-x-1/2 centers above the button
-              >
-                <div className="flex flex-col space-y-3 min-w-[200px]">
-                  <button
-                    className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors"
-                    onClick={copyToClipboard}
-                  >
-                    <span>📋</span>
-                    <span>{copied ? "Copied!" : "Copy Link"}</span>
-                  </button>
-                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
-                    <span>𝕏</span>
-                    <span>Share to X</span>
-                  </button>
-                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
-                    <span>📱</span>
-                    <span>WhatsApp</span>
-                  </button>
-                  <button className="flex items-center space-x-2 p-2 hover:bg-muted25 rounded-md transition-colors">
-                    <span>📨</span>
-                    <span>Email</span>
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
 

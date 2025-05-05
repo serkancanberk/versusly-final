@@ -46,7 +46,7 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Sort by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [sortOption, setSortOption] = useState("newest"); // default: newest
+  const [sortOption, setSortOption] = useState("new"); // default: new
   const sortMenuRef = useRef(null);
 
   // Fetch only once on mount (no infinite scroll)
@@ -59,8 +59,9 @@ const ClashFeed = ({ selectedTag, user }) => {
   const fetchClashes = async () => {
     setIsLoading(true);
     try {
+      const sortParam = sortOption === 'hot' || sortOption === 'finished' || sortOption === 'new' ? 'custom' : 'createdAt';
       const res = await fetch(
-        `http://localhost:8080/api/clashes?sort=${sortOption === 'hot' ? '-hotScore' : '-createdAt'}&limit=20`,
+        `http://localhost:8080/api/clashes?sortField=${sortParam}&sortOrder=${sortParam === 'custom' ? 'custom' : -1}`,
         {
           credentials: 'include',
           headers: {
@@ -249,10 +250,7 @@ const ClashFeed = ({ selectedTag, user }) => {
   const handleSortOptionChange = (option) => {
     setSortOption(option);
     setShowSortDropdown(false);
-    setClashList([]);
-    setHasMore(true);
-    offsetRef.current = 0;
-    fetchClashes();
+    // The rest is handled by the useEffect on sortOption
   };
 
   // Start new clash function - simple form -> detailed form
@@ -580,22 +578,30 @@ const ClashFeed = ({ selectedTag, user }) => {
             onClick={toggleSortDropdown}
           >
             <span>Sort by:</span>
-            <span className="font-medium text-secondary">{sortOption === 'hot' ? 'Hot' : 'Newest'}</span>
+            <span className="font-medium text-secondary">
+              {sortOption === 'hot' ? 'Hot' : sortOption === 'finished' ? 'Finished' : 'New'}
+            </span>
             <span className="text-xs">▼</span>
           </button>
           {showSortDropdown && (
             <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg z-20 w-36">
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange('newest')}
+                onClick={() => handleSortOptionChange('new')}
               >
-                Newest
+                New
               </button>
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
                 onClick={() => handleSortOptionChange('hot')}
               >
                 Hot
+              </button>
+              <button
+                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                onClick={() => handleSortOptionChange('finished')}
+              >
+                Finished
               </button>
             </div>
           )}
