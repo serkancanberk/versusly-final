@@ -70,15 +70,28 @@ const ClashFeed = ({ selectedTag, user }) => {
         return;
       }
 
-      const transformedData = data.map(item => ({
-        ...item,
-        _id: String(item._id),
-        vs_title: item.vs_title || item.title || "",
-        vs_statement: item.vs_statement || item.statement || "",
-        vs_argument: item.vs_argument || item.argument || "",
-        creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
-        statusLabel: getStatusLabel(item) // Add status label to each clash
-      })).filter(item => item.vs_title && item.vs_statement);
+      const transformedData = data.map(item => {
+        // Standardized argument handling
+        const clashArguments = Array.isArray(item.arguments) ? item.arguments : [];
+        const argumentCount = clashArguments.length;
+
+        return {
+          ...item,
+          _id: String(item._id),
+          vs_title: item.vs_title || item.title || "",
+          vs_statement: item.vs_statement || item.statement || "",
+          vs_argument: item.vs_argument || item.argument || "",
+          clashArguments, // Renamed from arguments to clashArguments
+          argumentCount, // Add explicit count
+          creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
+          statusLabel: getStatusLabel({ 
+            createdAt: item.createdAt, 
+            expires_at: item.expires_at, 
+            argumentCount, 
+            reactions: item.reactions 
+          })
+        };
+      }).filter(item => item.vs_title && item.vs_statement);
 
       setAllClashes(transformedData);
       setHasMore(false);
@@ -681,34 +694,47 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       {/* Clash list */}
       <div className="space-y-6 px-4 bg-bgashwhite">
-        {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? visibleClashes.map((clash) => {
-          return clash && clash._id ? (
-            <div key={clash._id} className="mb-4">
-              <ClashCard
-                vs_title={clash.vs_title}
-                vs_statement={clash.vs_statement}
-                argument={clash.vs_argument || (clash.arguments?.[0]?.text || "")}
-                argumentCount={clash.argumentCount}
-                reactions={clash.reactions}
-                tags={clash.tags}
-                expires_at={clash.expires_at}
-                createdAt={clash.createdAt}
-                creator={clash.creator}
-                user={user}
-                onTagClick={handleTagFilter}
-              />
+        {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
+          visibleClashes.map((clash) => {
+            return clash && clash._id ? (
+              <div key={clash._id} className="mb-10 pb-6">
+                <ClashCard
+                  vs_title={clash.vs_title}
+                  vs_statement={clash.vs_statement}
+                  argument={clash.vs_argument || (clash.clashArguments?.[0]?.text || "")}
+                  clashArguments={clash.clashArguments || []}
+                  reactions={clash.reactions}
+                  tags={clash.tags}
+                  expires_at={clash.expires_at}
+                  createdAt={clash.createdAt}
+                  creator={clash.creator}
+                  user={user}
+                  onTagClick={handleTagFilter}
+                />
+              </div>
+            ) : null;
+          })
+        ) : (
+          isLoading ? (
+            <div className="space-y-6 px-4 bg-bgashwhite">
+              {[...Array(3)].map((_, index) => (
+                <div
+                  key={index}
+                  className="h-48 bg-muted25 rounded-2xl animate-pulse"
+                ></div>
+              ))}
             </div>
-          ) : null;
-        }) : (
-          <div className="p-4 text-center text-body text-muted">
-            {isLoading ? "Loading..." : "No clashes found. Create the first one!"}
-          </div>
+          ) : (
+            <div className="p-4 text-center text-label text-mutedDark">
+              No clashes found. Create the first one!
+            </div>
+          )
         )}
       </div>
 
       {/* Clash count info */}
       {filteredClashes.length > 0 && (
-        <div className="text-center text-caption text-muted py-2">
+        <div className="text-center text-label text-mutedDark py-2">
           Showing {visibleClashes.length} of {filteredClashes.length} clash{filteredClashes.length > 1 ? "es" : ""}
         </div>
       )}
@@ -717,7 +743,7 @@ const ClashFeed = ({ selectedTag, user }) => {
       {(hasMore || allItemsLoaded) && (
         <div 
           ref={loaderRef} 
-          className="p-4 text-center text-body text-muted"
+          className="p-4 text-center text-label text-mutedDark"
         >
           {isLoadingMore ? (
             "Loading more clashes..."

@@ -2,11 +2,16 @@ import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import getStatusLabel from "../utils/statusLabel";
 
-export default function ClashCard({ vs_title, vs_statement, tags = [], arguments: argumentList = [], argumentCount = 0, reactions, expires_at, createdAt, creator, user }) {
+export default function ClashCard({ vs_title, vs_statement, tags = [], clashArguments = [], reactions, expires_at, createdAt, creator, user }) {
   const isLoggedIn = Boolean(user);
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
-  const safeArgument = argumentList.length > 0 ? argumentList[0].text : "";
+  
+  // Standardized argument handling
+  const safeArguments = Array.isArray(clashArguments) ? clashArguments : [];
+  const argumentCount = safeArguments.length;
+  const safeArgument = argumentCount > 0 ? safeArguments[0].text : "";
+  
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
     { emoji: "🤝", label: "Fair Point", description: "Somewhat agree" },
@@ -14,7 +19,14 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
     { emoji: "🙄", label: "Really?", description: "Skeptical" },
     { emoji: "🗑️", label: "Try Again", description: "Not convinced" }
   ];
+  
   const safeReactions = Array.isArray(reactions) && reactions.length > 0 ? reactions : mockReactions;
+  
+  // Calculate total reaction count
+  const reactionCount = reactions && typeof reactions === "object"
+    ? Object.values(reactions).reduce((acc, val) => acc + val, 0)
+    : 0;
+
   const messages = [
     { icon: "⚡", text: "This is a New Clash" },
     { icon: "🤺", text: "No arguments yet – strike the first one." },
@@ -299,7 +311,12 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
 
         {/* Clash info block */}
         {(() => {
-          const status = getStatusLabel({ createdAt, expires_at, argumentCount, reactions });
+          const status = getStatusLabel({ 
+            createdAt, 
+            expires_at, 
+            argumentCount, // Using standardized argumentCount
+            reactions 
+          });
           let emoji = "⚡";
           if (status === "hot") emoji = "🤯";
           else if (status === "finished") emoji = "⏰";
@@ -352,7 +369,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
                   onMouseLeave={handleButtonMouseLeave}
                 >
                   <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
-                  <span>{selectedReaction ? selectedReaction.label : "React"}</span>
+                  <span>{selectedReaction ? selectedReaction.label : `React (${reactionCount})`}</span>
                 </button>
               ) : (
                 <div className="relative group">
@@ -361,7 +378,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
                     disabled
                   >
                     <span>👊</span>
-                    <span>React</span>
+                    <span>{`React (${reactionCount})`}</span>
                   </button>
                   <div className="absolute bottom-full mb-1 left-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                     Sign in to react
@@ -393,7 +410,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], arguments
                   <div className="text-caption text-secondary whitespace-nowrap">
                     {argumentCount === 0
                       ? "No arguments yet – strike the first one."
-                      : `${argumentCount} arguments swang.`}
+                      : `${argumentCount} argument${argumentCount === 1 ? '' : 's'} swang.`}
                   </div>
                 </div>
               )}
