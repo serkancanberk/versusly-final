@@ -1,22 +1,24 @@
 import React, { useState, useEffect, useRef } from "react";
 import ClashCard from "./ClashCard";
 import { useNavigate } from "react-router-dom";
-
+import getStatusLabel from "../utils/statusLabel";
 
 const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
   const navigate = useNavigate();
   const [statement, setStatement] = useState("");
-  const [titleValue, setTitleValue] = useState(""); // VS başlığı için yeni state
-  console.log("ClashFeed props:", { user, titleValue });
+  const [titleValue, setTitleValue] = useState("");
   const [selectedSide, setSelectedSide] = useState("A");
   const [showDetailedForm, setShowDetailedForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [clashList, setClashList] = useState([]);
+  const [allClashes, setAllClashes] = useState([]); // Store all clashes
+  const [filteredClashes, setFilteredClashes] = useState([]); // Store filtered clashes
+  const [visibleClashes, setVisibleClashes] = useState([]); // Store currently visible clashes
   const [offset, setOffset] = useState(0);
   const offsetRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
+  const CHUNK_SIZE = 5; // Number of items to load at once
   const isLoggedIn = Boolean(user);
   const [titleError, setTitleError] = useState("");
   const [statementError, setStatementError] = useState("");
@@ -25,43 +27,23 @@ const ClashFeed = ({ selectedTag, user }) => {
   // Tag input state
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
-  const handleTagInputChange = (e) => {
-    setTagInput(e.target.value);
-  };
 
-  const handleTagInputKeyDown = (e) => {
-    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
-      e.preventDefault();
-      const trimmed = tagInput.trim();
-      if (trimmed.length > 20 || tags.length >= 5 || tags.includes(trimmed)) return;
-      setTags([...tags, trimmed]);
-      setTagInput("");
-    }
-  };
-
-  const handleTagRemove = (tagToRemove) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-
-  // Sort by dropdown için state
+  // Filter by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [sortOption, setSortOption] = useState("new"); // default: new
+  const [sortOption, setSortOption] = useState("all"); // default: all
   const sortMenuRef = useRef(null);
 
-  // Fetch only once on mount (no infinite scroll)
-  useEffect(() => {
-    fetchClashes();
-    // eslint-disable-next-line
-  }, []);
+  // New state for loading feedback
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  // New state for completion feedback
+  const [allItemsLoaded, setAllItemsLoaded] = useState(false);
 
-  // Fetch only 20 items, once, and disable infinite scroll
+  // Fetch clashes and apply status labels
   const fetchClashes = async () => {
     setIsLoading(true);
     try {
-      const sortParam = sortOption === 'hot' || sortOption === 'finished' || sortOption === 'new' ? 'custom' : 'createdAt';
       const res = await fetch(
-        `http://localhost:8080/api/clashes?sortField=${sortParam}&sortOrder=${sortParam === 'custom' ? 'custom' : -1}`,
+        `http://localhost:8080/api/clashes`,
         {
           credentials: 'include',
           headers: {
@@ -94,11 +76,12 @@ const ClashFeed = ({ selectedTag, user }) => {
         vs_title: item.vs_title || item.title || "",
         vs_statement: item.vs_statement || item.statement || "",
         vs_argument: item.vs_argument || item.argument || "",
-        creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null
+        creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
+        statusLabel: getStatusLabel(item) // Add status label to each clash
       })).filter(item => item.vs_title && item.vs_statement);
 
-      setClashList(transformedData);
-      setHasMore(false); // No more loading after initial batch
+      setAllClashes(transformedData);
+      setHasMore(false);
     } catch (err) {
       console.error("Error fetching clashes:", err);
     } finally {
@@ -106,25 +89,121 @@ const ClashFeed = ({ selectedTag, user }) => {
     }
   };
 
+  // Filter clashes based on sortOption
+  useEffect(() => {
+    let filtered = [...allClashes];
+    
+    switch (sortOption) {
+      case "hot":
+        filtered = allClashes.filter(clash => clash.statusLabel === "hot");
+        break;
+      case "new":
+        filtered = allClashes.filter(clash => clash.statusLabel === "new");
+        break;
+      case "finished":
+        filtered = allClashes.filter(clash => clash.statusLabel === "finished");
+        break;
+      case "all":
+      default:
+        // Sort all clashes by status: hot -> new -> finished
+        filtered.sort((a, b) => {
+          const statusOrder = { hot: 0, new: 1, finished: 2 };
+          return statusOrder[a.statusLabel] - statusOrder[b.statusLabel];
+        });
+        break;
+    }
+
+    setFilteredClashes(filtered);
+    setOffset(0); // Reset offset when filter changes
+    setVisibleClashes(filtered.slice(0, CHUNK_SIZE)); // Show first chunk
+    setHasMore(filtered.length > CHUNK_SIZE); // Update hasMore based on remaining items
+  }, [sortOption, allClashes]);
+
+  // Load more items when scrolling
+  const loadMoreItems = async () => {
+    if (!hasMore || isLoading || isLoadingMore) return;
+
+    setIsLoadingMore(true);
+    const nextOffset = offset + CHUNK_SIZE;
+    const nextItems = filteredClashes.slice(nextOffset, nextOffset + CHUNK_SIZE);
+    
+    if (nextItems.length > 0) {
+      // Simulate loading delay
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Filter out any potential duplicates
+      setVisibleClashes(prev => {
+        const existingIds = new Set(prev.map(item => item._id));
+        const newItems = nextItems.filter(item => !existingIds.has(item._id));
+        return [...prev, ...newItems];
+      });
+      
+      setOffset(nextOffset);
+      const hasMoreItems = nextOffset + CHUNK_SIZE < filteredClashes.length;
+      setHasMore(hasMoreItems);
+      setAllItemsLoaded(!hasMoreItems);
+    } else {
+      setHasMore(false);
+      setAllItemsLoaded(true);
+    }
+    
+    setIsLoadingMore(false);
+  };
+
+  // Intersection Observer setup with adjusted sensitivity
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
+          loadMoreItems();
+        }
+      },
+      {
+        root: null,
+        rootMargin: "300px", // Increased margin for earlier trigger
+        threshold: 0.1,
+      }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [hasMore, isLoading, isLoadingMore, offset, filteredClashes]);
+
+  // Reset loading states when filter changes
+  useEffect(() => {
+    setAllItemsLoaded(false);
+    setIsLoadingMore(false);
+  }, [sortOption]);
+
+  // Initial fetch
+  useEffect(() => {
+    fetchClashes();
+    // eslint-disable-next-line
+  }, []);
+
   // Tag filter handler
   const handleTagFilter = (tag) => {
     setSelectedTag(tag);
-    setClashList([]);
-    setHasMore(true);
-    offsetRef.current = 0;
     fetchClashes();
   };
 
-  // (Infinite scroll IntersectionObserver removed - infinite scroll disabled)
+  // Filter by dropdown'ı aç/kapat
+  const toggleSortDropdown = () => {
+    setShowSortDropdown(!showSortDropdown);
+  };
 
-  // Initial fetch and also refetch when sortOption changes
-  useEffect(() => {
-    offsetRef.current = 0;
-    setClashList([]);
-    setHasMore(true);
-    fetchClashes();
-    // eslint-disable-next-line
-  }, [sortOption]);
+  // Sort seçeneğini ayarla
+  const handleSortOptionChange = (option) => {
+    setSortOption(option);
+    setShowSortDropdown(false);
+  };
 
   // Side A ve Side B için dinamik başlıklar
   const [sideATitle, setSideATitle] = useState("Side A");
@@ -188,7 +267,6 @@ const ClashFeed = ({ selectedTag, user }) => {
     }
   };
 
-
   // Side seçimi değiştiğinde çalışacak fonksiyon
   const handleSideChange = (side) => {
     setSelectedSide(side);
@@ -239,18 +317,6 @@ const ClashFeed = ({ selectedTag, user }) => {
       setSideATitle("Side A");
       setSideBTitle("Side B");
     }
-  };
-
-  // Sort by dropdown'ı aç/kapat
-  const toggleSortDropdown = () => {
-    setShowSortDropdown(!showSortDropdown);
-  };
-
-  // Sort seçeneğini ayarla
-  const handleSortOptionChange = (option) => {
-    setSortOption(option);
-    setShowSortDropdown(false);
-    // The rest is handled by the useEffect on sortOption
   };
 
   // Start new clash function - simple form -> detailed form
@@ -312,7 +378,7 @@ const ClashFeed = ({ selectedTag, user }) => {
       handleClearForm();
       
       // Prepend the new clash to the current list, filtering out any duplicate _id
-      setClashList(prev => {
+      setAllClashes(prev => {
         const filtered = prev.filter(item => String(item._id) !== String(result._id));
         return [result, ...filtered];
       });
@@ -568,7 +634,6 @@ const ClashFeed = ({ selectedTag, user }) => {
         )}
       </div>
 
-
       {/* Sort dropdown and options */}
       <div className="p-8 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
         <h2 className="text-body text-secondary">Highlighted Clashes</h2>
@@ -577,9 +642,9 @@ const ClashFeed = ({ selectedTag, user }) => {
             className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
             onClick={toggleSortDropdown}
           >
-            <span>Sort by:</span>
+            <span>Filter by:</span>
             <span className="font-medium text-secondary">
-              {sortOption === 'hot' ? 'Hot' : sortOption === 'finished' ? 'Finished' : 'New'}
+              {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
             </span>
             <span className="text-xs">▼</span>
           </button>
@@ -587,21 +652,27 @@ const ClashFeed = ({ selectedTag, user }) => {
             <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg z-20 w-36">
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange('new')}
+                onClick={() => handleSortOptionChange("all")}
               >
-                New
+              ⚔️ All
               </button>
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange('hot')}
+                onClick={() => handleSortOptionChange("hot")}
               >
-                Hot
+              💥 Hot
               </button>
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange('finished')}
+                onClick={() => handleSortOptionChange("new")}
               >
-                Finished
+               ⚡ New
+              </button>
+              <button
+                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                onClick={() => handleSortOptionChange("finished")}
+              >
+                ⏰ Finished
               </button>
             </div>
           )}
@@ -610,11 +681,7 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       {/* Clash list */}
       <div className="space-y-6 px-4 bg-bgashwhite">
-        {/* <div className="px-4 text-sm text-secondary">
-          Debug: {clashList.length} clashes loaded
-        </div> */}
-        {Array.isArray(clashList) && clashList.length > 0 ? clashList.map((clash) => {
-          console.log("Rendering clash:", clash);
+        {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? visibleClashes.map((clash) => {
           return clash && clash._id ? (
             <div key={clash._id} className="mb-4">
               <ClashCard
@@ -628,6 +695,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                 createdAt={clash.createdAt}
                 creator={clash.creator}
                 user={user}
+                onTagClick={handleTagFilter}
               />
             </div>
           ) : null;
@@ -639,18 +707,25 @@ const ClashFeed = ({ selectedTag, user }) => {
       </div>
 
       {/* Clash count info */}
-      {clashList.length > 0 && (
+      {filteredClashes.length > 0 && (
         <div className="text-center text-caption text-muted py-2">
-          Showing {clashList.length} clash{clashList.length > 1 ? "es" : ""}
+          Showing {visibleClashes.length} of {filteredClashes.length} clash{filteredClashes.length > 1 ? "es" : ""}
         </div>
       )}
-      {/* Loading indicator */}
-      {hasMore && (
+
+      {/* Loading indicator with enhanced feedback */}
+      {(hasMore || allItemsLoaded) && (
         <div 
           ref={loaderRef} 
           className="p-4 text-center text-body text-muted"
         >
-          {isLoading && clashList.length > 0 ? "Loading more clashes..." : "Loader active"}
+          {isLoadingMore ? (
+            "Loading more clashes..."
+          ) : allItemsLoaded ? (
+            "✅ All clashes loaded"
+          ) : (
+            "Scroll for more"
+          )}
         </div>
       )}
       </div>
