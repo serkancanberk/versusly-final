@@ -5,6 +5,8 @@ import getStatusLabel from "../utils/statusLabel";
 
 const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
+  // Rate limit for releasing clash
+  const lastClashTimestampRef = useRef(0);
   const navigate = useNavigate();
   const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState("");
@@ -353,10 +355,26 @@ const ClashFeed = ({ selectedTag, user }) => {
       return;
     }
 
+    // Enhanced statement validation
     if (!statement.trim()) {
       setStatementError("Please add your bold statement!");
       return;
     }
+    
+    // Check statement length
+    if (statement.trim().length < 10) {
+      setStatementError("Your statement is too short. Please be more descriptive.");
+      return;
+    }
+
+    // Rate limit: prevent posting more than once per 60 seconds
+    const now = Date.now();
+    const MIN_INTERVAL = 60000; // 60 seconds
+    if (now - lastClashTimestampRef.current < MIN_INTERVAL) {
+      alert("You're posting too frequently. Please wait a bit before creating another clash.");
+      return;
+    }
+    lastClashTimestampRef.current = now;
 
     setIsLoading(true);
 
@@ -437,6 +455,30 @@ const ClashFeed = ({ selectedTag, user }) => {
     setStatement(statements[randomIndex]);
   };
   
+  // Enhanced tag input validation
+  const handleTagInputKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ',') && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      
+      // Check for empty or duplicate tags
+      if (!newTag || tags.includes(newTag)) {
+        setTagInput("");
+        return;
+      }
+      
+      if (newTag.length > 20 || tags.length >= 5) return;
+      
+      setTags([...tags, newTag]);
+      setTagInput("");
+    }
+  };
+
+  // Tag input change handler
+  const handleTagInputChange = (e) => {
+    setTagInput(e.target.value);
+  };
+
   // Success toast above main content
   return (
     <>
@@ -673,7 +715,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
                 onClick={() => handleSortOptionChange("hot")}
               >
-              💥 Hot
+              🤯 Hot
               </button>
               <button
                 className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"

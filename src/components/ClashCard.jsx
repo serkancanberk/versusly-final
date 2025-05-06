@@ -2,7 +2,17 @@ import React, { useState, useEffect, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import getStatusLabel from "../utils/statusLabel";
 
-export default function ClashCard({ vs_title, vs_statement, tags = [], clashArguments = [], reactions, expires_at, createdAt, creator, user }) {
+export default function ClashCard({ 
+  vs_title, 
+  vs_statement, 
+  tags = [], 
+  clashArguments = [], 
+  reactions, 
+  expires_at, 
+  createdAt, 
+  creator, 
+  user 
+}) {
   const isLoggedIn = Boolean(user);
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
@@ -173,9 +183,15 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
   // Reaksiyon seçme işlemi
   const handleReactionSelect = (reaction) => {
     if (!isLoggedIn) return;
-    setSelectedReaction(reaction);
+
+    if (selectedReaction?.label === reaction.label) {
+      setSelectedReaction(null); // deselect if same reaction clicked again
+    } else {
+      setSelectedReaction(reaction); // new selection
+    }
+
     setActiveMenu(null);
-    // Burada seçilen reaksiyonu backend'e gönderme işlemi yapılabilir
+    // Backend sync logic can go here if needed
   };
 
   // Report işlemi
@@ -364,7 +380,9 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
             <div className="relative group w-full">
               {isLoggedIn ? (
                 <button
-                  className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-primary hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                className={`w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4 ${
+                    selectedReaction ? 'bg-muted25' : ''
+                  }`}
                   onMouseEnter={handleReactButtonHover}
                   onMouseLeave={handleButtonMouseLeave}
                 >
@@ -374,8 +392,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
               ) : (
                 <div className="relative group">
                   <button
-                    className="w-full h-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed py-2"
-                    disabled
+                    className="w-full h-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed py-3"                    disabled
                   >
                     <span>👊</span>
                     <span>{`React (${reactionCount})`}</span>
@@ -392,11 +409,10 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
           <div className="flex-1 relative" ref={menuRefs.current.arguments}>
             <div className="relative group w-full">
               <button
-                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4"
                 onMouseEnter={handleArgumentsButtonHover}
                 onMouseLeave={handleButtonMouseLeave}
                 onClick={handleArgumentsClick}
-                disabled={!isLoggedIn}
               >
                 <span>🤺</span>
                 <span>Args ({argumentCount})</span>
@@ -408,9 +424,16 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
                   onMouseLeave={() => setActiveMenu(null)}
                 >
                   <div className="text-caption text-secondary whitespace-nowrap">
-                    {argumentCount === 0
-                      ? "No arguments yet – strike the first one."
-                      : `${argumentCount} argument${argumentCount === 1 ? '' : 's'} swang.`}
+                    {argumentCount === 0 ? (
+                      "No arguments yet – strike the first one."
+                    ) : (
+                      <>
+                        {`${argumentCount} argument${argumentCount === 1 ? '' : 's'} swang.`}
+                        <div className="mt-1 text-mutedDark italic">
+                          💬 {safeArguments[argumentCount - 1]?.text?.slice(0, 25)}...
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               )}
@@ -420,7 +443,7 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
           {/* Share Button */}
           <div className="flex-1 relative" ref={menuRefs.current.share}>
             <button
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-2"
+              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4"
               onMouseEnter={() => setHovered(true)}
               onMouseLeave={() => setHovered(false)}
               onClick={copyToClipboard}
@@ -449,14 +472,14 @@ export default function ClashCard({ vs_title, vs_statement, tags = [], clashArgu
       {activeMenu === "react" && (
         <div
           ref={menuRefs.current.react}
-          className="absolute left-4 bottom-16 bg-white rounded-lg shadow-xl p-3 z-30 grid grid-cols-5 gap-2 animate-fadeIn"
+          className="absolute left-4 bottom-28 bg-white rounded-lg shadow-xl p-3 z-30 grid grid-cols-5 gap-2 animate-fadeIn"
         >
           {safeReactions.map((reaction, index) => (
             <button
               key={index}
-              className={`flex flex-col items-center justify-center p-2 hover:bg-muted25 rounded-md transition-colors ${
-                !isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''
-              }`}
+              className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors ${
+                selectedReaction?.label === reaction.label ? 'bg-muted25' : 'hover:bg-muted25'
+              } ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
               onClick={() => isLoggedIn && handleReactionSelect(reaction)}
               disabled={!isLoggedIn}
             >
