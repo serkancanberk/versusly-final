@@ -1,113 +1,165 @@
-import React from "react";
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
+import debounce from "lodash/debounce";
 
-const RightSidebar = ({ onTagClick, selectedTag, user, setUser }) => {
-  // GoogleLogin handles login internally
+const MAX_RECENT_SEARCHES = 5;
+
+// Tag color mapping
+const TAG_COLORS = {
+  'Mind Duel': 'bg-yellow-100 text-yellow-800',
+  'Pop Arena': 'bg-purple-100 text-purple-800',
+  'Tech Talk': 'bg-blue-100 text-blue-800',
+  'Food Fight': 'bg-green-100 text-green-800',
+  'Sports Showdown': 'bg-red-100 text-red-800',
+  'default': 'bg-muted25 text-secondary'
+};
+
+const getTagColor = (tag) => {
+  return TAG_COLORS[tag] || TAG_COLORS.default;
+};
+
+const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
   const [isClient, setIsClient] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [topTags, setTopTags] = useState([]);
+  const [isLoadingTags, setIsLoadingTags] = useState(true);
+  const [showRecentSearches, setShowRecentSearches] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
+  const searchInputRef = useRef(null);
 
   useEffect(() => {
     setIsClient(true);
+    fetchTopTags();
+    // Load recent searches from localStorage
+    const savedSearches = localStorage.getItem("recentSearches");
+    if (savedSearches) {
+      setRecentSearches(JSON.parse(savedSearches));
+    }
   }, []);
+
+  const fetchTopTags = async () => {
+    try {
+      const response = await fetch("http://localhost:8080/api/clashes/top-tags");
+      const data = await response.json();
+      setTopTags(Array.isArray(data) ? data.filter(tag => tag && typeof tag === 'object' && tag.tag && typeof tag.count === 'number') : []);
+    } catch (error) {
+      console.error("Error fetching top tags:", error);
+      setTopTags([]); // Ensure fallback to empty array on error
+    } finally {
+      setIsLoadingTags(false);
+    }
+  };
+
+  // Debounced search function
+  const debouncedSearch = debounce((query) => {
+    onSearch(query);
+    // Save to recent searches
+    if (query.trim()) {
+      setRecentSearches(prev => {
+        const newSearches = [query, ...prev.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
+        localStorage.setItem("recentSearches", JSON.stringify(newSearches));
+        return newSearches;
+      });
+    }
+  }, 300);
+
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    debouncedSearch(query);
+  };
+
+  const handleSearchFocus = () => {
+    setShowRecentSearches(true);
+  };
+
+  const handleSearchBlur = () => {
+    // Delay hiding to allow clicking on recent searches
+    setTimeout(() => {
+      setShowRecentSearches(false);
+    }, 200);
+  };
+
+  const handleRecentSearchClick = (query) => {
+    setSearchQuery(query);
+    onSearch(query);
+    setShowRecentSearches(false);
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem("recentSearches");
+  };
 
   return (
     <div className="p-4 pl-6 pr-4 flex flex-col h-full">
       {/* Top Combat Arenas */}
       <div className="mt-16 flex-grow">
         <h2 className="text-subheading text-secondary mb-4">🛡️ Find Tough Clashes</h2>
-        {/* Arama kutusu */}
+        {/* Search input with recent searches dropdown */}
         <div className="relative mb-3 group">
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="What battle are you looking for?"
+            placeholder="Search clashes..."
             className="w-full py-2 px-4 text-sm text-secondary bg-muted25 rounded-md"
-            readOnly
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
           />
           <div className="absolute right-2 top-2 text-secondary">
             🔍
           </div>
-          <div
-            className="absolute bottom-full mb-1 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-secondary text-white text-caption px-2 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10"
-          >
-            Search coming soon!
-          </div>
+          
+          {/* Recent searches dropdown */}
+          {showRecentSearches && recentSearches.length > 0 && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-md shadow-lg z-50 border border-muted">
+              <div className="p-2 border-b border-muted flex justify-between items-center">
+                <span className="text-xs text-mutedDark">Recent searches</span>
+                <button
+                  onClick={clearRecentSearches}
+                  className="text-xs text-mutedDark hover:text-alert"
+                >
+                  Clear all
+                </button>
+              </div>
+              {recentSearches.map((query, index) => (
+                <button
+                  key={index}
+                  className="w-full text-left px-3 py-2 text-sm text-secondary hover:bg-muted25 flex items-center gap-2"
+                  onClick={() => handleRecentSearchClick(query)}
+                >
+                  <span className="text-mutedDark">🔍</span>
+                  {query}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         
+        {/* Dynamic Tags */}
         <div className="flex flex-wrap gap-2 mb-2">
-          {/* İlk satır */}
-          <button
-            onClick={() => onTagClick(selectedTag === "Mind Duel" ? null : "Mind Duel")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Mind Duel" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Mind Duel
-          </button>
-          <button
-            onClick={() => onTagClick(selectedTag === "Pop Arena" ? null : "Pop Arena")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Pop Arena" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Pop Arena
-          </button>
-          <button
-            onClick={() => onTagClick(selectedTag === "Fan Battle" ? null : "Fan Battle")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Fan Battle" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Fan Battle
-          </button>
+          {isLoadingTags ? (
+            <div className="w-full text-center text-mutedDark">Loading tags...</div>
+          ) : (
+            (Array.isArray(topTags) ? topTags : []).map(({ tag, count }) => (
+              <button
+                key={tag}
+                onClick={() => onTagClick(selectedTag === tag ? null : tag)}
+                className={`px-3 py-3 mt-3 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
+                  selectedTag === tag 
+                    ? 'bg-primary text-white' 
+                    : getTagColor(tag)
+                }`}
+                title={`${count} clashes`}
+              >
+                {tag}
+              </button>
+            ))
+          )}
         </div>
-        
-        <div className="flex flex-wrap gap-2 mb-2">
-          {/* İkinci satır */}
-          <button
-            onClick={() => onTagClick(selectedTag === "Taste War" ? null : "Taste War")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Taste War" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Taste War
-          </button>
-          <button
-            onClick={() => onTagClick(selectedTag === "Tech Clash" ? null : "Tech Clash")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Tech Clash" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Tech Clash
-          </button>
-          <button
-            onClick={() => onTagClick(selectedTag === "Old School" ? null : "Old School")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Old School" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Old School
-          </button>
-        </div>
-        
-        <div className="flex flex-wrap gap-2 mb-6">
-          {/* Üçüncü satır */}
-          <button
-            onClick={() => onTagClick(selectedTag === "Hype Showdown" ? null : "Hype Showdown")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Hype Showdown" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Hype Showdown
-          </button>
-          <button
-            onClick={() => onTagClick(selectedTag === "Wildcard" ? null : "Wildcard")}
-            className={`px-3 py-3 mt-3 rounded-lg text-caption text-secondary hover:shadow-md hover:bg-opacity-75 ${
-              selectedTag === "Wildcard" ? "bg-primary" : "bg-muted25"
-            }`}
-          >
-            Wildcard
-          </button>
-        </div>
+
         {selectedTag && (
           <div className="flex justify-end mb-6">
             <button

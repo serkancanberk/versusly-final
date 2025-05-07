@@ -1,6 +1,6 @@
 // src/pages/MainFeed.jsx
-import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import NavigationSidebar from '../components/NavigationSidebar';
 import ClashFeed from '../components/ClashFeed';
 import RightSidebar from '../components/RightSidebar';
@@ -8,10 +8,56 @@ import Header from '../components/Header';
 
 const MainFeed = ({ user, setUser }) => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedTag = searchParams.get("tag");
+  const location = useLocation();
+  const [selectedTag, setSelectedTag] = useState(null);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+
+  // Initialize tag from both hash and query params
+  useEffect(() => {
+    const hashTag = location.hash.slice(1); // Remove the # symbol
+    const queryTag = searchParams.get("tag");
+    
+    // Prefer hash tag if both exist
+    if (hashTag) {
+      setSelectedTag(hashTag);
+    } else if (queryTag) {
+      setSelectedTag(queryTag);
+    } else {
+      setSelectedTag(null);
+    }
+  }, [location.hash, searchParams]);
+
+  // Sync search query with URL
+  useEffect(() => {
+    if (searchQuery) {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.set("q", searchQuery);
+        return newParams;
+      });
+    } else {
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete("q");
+        return newParams;
+      });
+    }
+  }, [searchQuery, setSearchParams]);
 
   const handleTagFilter = (tag) => {
-    setSearchParams(tag ? { tag } : {});
+    if (tag) {
+      // Update hash for tag navigation
+      window.location.hash = tag;
+      setSelectedTag(tag);
+    } else {
+      // Clear hash when removing tag
+      window.location.hash = "";
+      setSelectedTag(null);
+    }
+  };
+
+  const handleSearch = (query) => {
+    setSearchQuery(query);
   };
 
   return (
@@ -26,20 +72,31 @@ const MainFeed = ({ user, setUser }) => {
         {/* Navigation Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[18%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-          <NavigationSidebar user={user} />
+            <NavigationSidebar user={user} />
           </div>
         </div>
 
         {/* Center Feed - Scrollable */}
         <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
-          {console.log("✅ MainFeed is rendering ClashFeed with user:", user)}
-          <ClashFeed selectedTag={selectedTag} user={user} sortBy="newest" />
+          <ClashFeed 
+            selectedTag={selectedTag} 
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            user={user} 
+            sortBy="newest" 
+          />
         </div>
 
         {/* Right Sidebar - Hidden on mobile */}
         <div className="hidden sm:block sm:w-[320px] lg:w-[27%] flex-shrink-0">
           <div className="sticky top-0 h-screen overflow-y-auto">
-          <RightSidebar onTagClick={handleTagFilter} selectedTag={selectedTag} user={user} setUser={setUser} />
+            <RightSidebar 
+              onTagClick={handleTagFilter} 
+              selectedTag={selectedTag} 
+              user={user} 
+              setUser={setUser}
+              onSearch={handleSearch}
+            />
           </div>
         </div>
       </div>

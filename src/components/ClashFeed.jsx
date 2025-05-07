@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
 import { sanitizeInput, formatGPTResponse, generatePromptFromForm } from "../utils/gptUtils.js";
 
-const ClashFeed = ({ selectedTag, user }) => {
+const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   // State değişkenleri
   // Rate limit for releasing clash
   const lastClashTimestampRef = useRef(0);
@@ -76,19 +76,28 @@ const ClashFeed = ({ selectedTag, user }) => {
   // New state for completion feedback
   const [allItemsLoaded, setAllItemsLoaded] = useState(false);
 
-  // Fetch clashes and apply status labels
+  // Fetch tag count when tag is selected
+  const [tagCount, setTagCount] = useState(null);
+
+  // State for share toast
+  const [showShareToast, setShowShareToast] = useState(false);
+
+  // Fetch clashes based on search query or tag
   const fetchClashes = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(
-        `http://localhost:8080/api/clashes`,
-        {
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json'
-          }
+      console.log("searchQuery", searchQuery); // Add logging to debug searchQuery
+      let url = "http://localhost:8080/api/clashes";
+      if (selectedTag) {
+        url = `http://localhost:8080/api/clashes?tag=${encodeURIComponent(selectedTag)}`;
+      }
+
+      const res = await fetch(url, {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json'
         }
-      );
+      });
 
       if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
 
@@ -109,7 +118,6 @@ const ClashFeed = ({ selectedTag, user }) => {
       }
 
       const transformedData = data.map(item => {
-        // Standardized argument handling
         const clashArguments = Array.isArray(item.arguments) ? item.arguments : [];
         const argumentCount = clashArguments.length;
 
@@ -119,8 +127,8 @@ const ClashFeed = ({ selectedTag, user }) => {
           vs_title: item.vs_title || item.title || "",
           vs_statement: item.vs_statement || item.statement || "",
           vs_argument: item.vs_argument || item.argument || "",
-          clashArguments, // Renamed from arguments to clashArguments
-          argumentCount, // Add explicit count
+          clashArguments,
+          argumentCount,
           creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
           statusLabel: getStatusLabel({ 
             createdAt: item.createdAt, 
@@ -131,14 +139,32 @@ const ClashFeed = ({ selectedTag, user }) => {
         };
       }).filter(item => item.vs_title && item.vs_statement);
 
-      setAllClashes(transformedData);
-      setHasMore(false);
+      // Always apply frontend-level filter if searchQuery exists
+      let filteredData = transformedData;
+      if (searchQuery) {
+        const lowerQuery = searchQuery.toLowerCase();
+        filteredData = transformedData.filter(item =>
+          item.vs_title.toLowerCase().includes(lowerQuery) ||
+          item.vs_statement.toLowerCase().includes(lowerQuery) ||
+          (Array.isArray(item.tags) && item.tags.some(tag => tag.toLowerCase().includes(lowerQuery)))
+        );
+      }
+
+      setAllClashes(filteredData);
+      setFilteredClashes(filteredData);
+      setVisibleClashes(filteredData.slice(0, CHUNK_SIZE));
+      setHasMore(filteredData.length > CHUNK_SIZE);
     } catch (err) {
       console.error("Error fetching clashes:", err);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // Update clashes when search query or tag changes
+  useEffect(() => {
+    fetchClashes();
+  }, [searchQuery, selectedTag]);
 
   // Filter clashes based on sortOption
   useEffect(() => {
@@ -636,7 +662,7 @@ const ClashFeed = ({ selectedTag, user }) => {
     `,
           `
     Generate a totally random and unexpected versus-style debate title in the format "X vs. Y".
-    Avoid repeating common pairs like “Cats vs. Dogs” or “Netflix vs. Disney+”.
+    Avoid repeating common pairs like "Cats vs. Dogs" or "Netflix vs. Disney+".
     Use ideas from pop culture, memes, tech, lifestyle, and philosophy.
     Only return the title.
     `
@@ -753,6 +779,32 @@ Return only a comma-separated list of concise tags. No explanations.
     setTags(prev => prev.filter(tag => tag !== tagToRemove));
   };
 
+  // Fetch tag count when tag is selected
+  useEffect(() => {
+    if (selectedTag) {
+      fetch(`http://localhost:8080/api/clashes/top-tags`)
+        .then(res => res.json())
+        .then(tags => {
+          const tag = tags.find(t => t.tag === selectedTag);
+          setTagCount(tag?.count || 0);
+        })
+        .catch(err => console.error("Error fetching tag count:", err));
+    } else {
+      setTagCount(null);
+    }
+  }, [selectedTag]);
+
+  // Share handler (make sure this is defined before JSX usage)
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setShowShareToast(true);
+      setTimeout(() => setShowShareToast(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy URL:", err);
+    }
+  };
+
   // Success toast above main content
   return (
     <>
@@ -762,7 +814,7 @@ Return only a comma-separated list of concise tags. No explanations.
             <h3 className="text-heading text-secondary flex items-center gap-2 mb-2">
               ⚔️ Clash Created!
             </h3>
-            <div className="text-caption text-mutedDark">Here’s your newly released clash:</div>
+            <div className="text-caption text-mutedDark">Here's your newly released clash:</div>
             <div className="border border-muted rounded-xl p-3 bg-muted25 dark:bg-muted-dark">
               <div className="text-subheading text-secondary font-semibold mb-1">{pendingClashData?.vs_title || titleValue}</div>
               <div className="text-body text-mutedDark mb-2">{pendingClashData?.vs_statement || statement}</div>
@@ -778,7 +830,7 @@ Return only a comma-separated list of concise tags. No explanations.
         </div>
       )}
       <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
-      {/* Title and description above feed (moved above input area) */}
+      {/* Title and description above feed */}
       <div className="px-4 pt-20 pb-1 mb-1">
         <h1 className="text-subheading text-secondary flex items-center gap-2">
           🔥 Clash Starts Here.
@@ -787,6 +839,62 @@ Return only a comma-separated list of concise tags. No explanations.
           Your bold statement meets its rival. AI scores both sides. The crowd decides.
         </p>
       </div>
+
+      {/* Active filters summary */}
+      {(searchQuery || selectedTag) && (
+        <div className="px-4 py-3 bg-muted25/50 border-b border-muted">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-label text-mutedDark">
+              <span>Showing results for:</span>
+              <div className="flex flex-wrap gap-2">
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
+                    "{searchQuery}"
+                    <button
+                      onClick={() => setSearchQuery("")}
+                      className="text-mutedDark hover:text-alert transition-colors"
+                      title="Clear search"
+                    >
+                      ✖
+                    </button>
+                  </span>
+                )}
+                {selectedTag && (
+                  <span className="group relative inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
+                    #{selectedTag}
+                    <button
+                      onClick={() => handleTagFilter(null)}
+                      className="text-mutedDark hover:text-alert transition-colors"
+                      title="Clear tag filter"
+                    >
+                      ✖
+                    </button>
+                    {tagCount !== null && (
+                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-secondary text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                        {tagCount} clash{tagCount !== 1 ? 'es' : ''} with this tag
+                      </span>
+                    )}
+                  </span>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={handleShare}
+              className="inline-flex items-center gap-1 px-3 py-1 text-sm text-secondary hover:text-accent transition-colors"
+              title="Share this view"
+            >
+              <span>🔗</span> Share
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Share toast */}
+      {showShareToast && (
+        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-secondary text-white px-4 py-2 rounded-full shadow-lg z-50">
+          Link copied!
+        </div>
+      )}
 
       {/* Input alanı */}
       <div className="sticky top-0 z-10 px-4 py-6">
@@ -1086,6 +1194,13 @@ Return only a comma-separated list of concise tags. No explanations.
 
       {/* Clash list */}
       <div className="space-y-6 px-4 bg-bgashwhite">
+        {/* Search results count */}
+        {searchQuery && !isLoading && (
+          <div className="text-label text-mutedDark mb-4">
+            🔍 {filteredClashes.length} result{filteredClashes.length !== 1 ? 's' : ''} found for "{searchQuery}"
+          </div>
+        )}
+
         {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
           visibleClashes.map((clash) => {
             return clash && clash._id ? (
@@ -1117,8 +1232,32 @@ Return only a comma-separated list of concise tags. No explanations.
               ))}
             </div>
           ) : (
-            <div className="p-4 text-center text-label text-mutedDark">
-              No clashes found. Create the first one!
+            <div className="p-8 text-center">
+              <div className="text-label text-mutedDark mb-2">
+                {searchQuery ? (
+                  <>
+                    No results found for "{searchQuery}"
+                    {selectedTag && (
+                      <span> with tag "{selectedTag}"</span>
+                    )}
+                  </>
+                ) : selectedTag ? (
+                  `No clashes found with tag "${selectedTag}"`
+                ) : (
+                  "No clashes found. Create the first one!"
+                )}
+              </div>
+              {(searchQuery || selectedTag) && (
+                <button
+                  onClick={() => {
+                    if (searchQuery) setSearchQuery("");
+                    if (selectedTag) handleTagFilter(null);
+                  }}
+                  className="text-accent hover:text-accent-dark transition-colors"
+                >
+                  Clear filters
+                </button>
+              )}
             </div>
           )
         )}

@@ -183,4 +183,56 @@ router.post('/evaluate', authenticateUser, async (req, res) => {
   }
 });
 
+// Search clashes
+router.get('/search', async (req, res) => {
+  try {
+    const rawQuery = req.query.query;
+    const query = rawQuery ? rawQuery.trim() : "";
+    if (!query || query.length < 2) {
+      return res.json([]);
+    }
+
+    const searchRegex = new RegExp(`\\b${query}\\b`, 'i'); // Match full word boundary
+    const clashes = await Clash.find({
+      $or: [
+        { vs_title: searchRegex },
+        { vs_statement: searchRegex },
+        { tags: searchRegex }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    .populate("creator", "name picture email");
+
+    res.json(clashes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// Get top tags
+router.get('/top-tags', async (req, res) => {
+  try {
+    const topTags = await Clash.aggregate([
+      { $match: { tags: { $exists: true, $ne: [] } } },
+      { $unwind: "$tags" },
+      { $group: { _id: "$tags", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      { $project: { tag: "$_id", count: 1, _id: 0 } }
+    ]);
+
+    // Defensive check: Ensure topTags is an array
+    if (!Array.isArray(topTags)) {
+      console.error("topTags is not an array:", topTags);
+      return res.status(500).json({ message: "Invalid topTags format" });
+    }
+
+    res.json(topTags);
+  } catch (err) {
+    console.error("Top Tags Aggregation Error:", err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
 export default router; // clashRoutes'u dışarıya aktarıyoruz
