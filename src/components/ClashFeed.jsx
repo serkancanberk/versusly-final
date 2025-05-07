@@ -30,6 +30,9 @@ const ClashFeed = ({ selectedTag, user }) => {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
 
+  // AI loading field state: "title", "statement", or "tags"
+  const [aiLoadingField, setAiLoadingField] = useState(null);
+
   // Filter by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortOption, setSortOption] = useState("all"); // default: all
@@ -450,7 +453,6 @@ const ClashFeed = ({ selectedTag, user }) => {
       "Anyone who's spent time with both knows there's only one real choice.",
       "The features and capabilities make this the obvious choice."
     ];
-    
     const randomIndex = Math.floor(Math.random() * statements.length);
     setStatement(statements[randomIndex]);
   };
@@ -513,14 +515,27 @@ const ClashFeed = ({ selectedTag, user }) => {
                 onKeyPress={handleKeyPress}
                 disabled={!isLoggedIn}
               />
-              <div className="flex space-x-2">
-                <button
-                  className={`text-mutedDark hover:text-secondary transition-colors ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  onClick={getRandomVs}
-                  disabled={!isLoggedIn}
-                >
-                  🎲
-                </button>
+              <div className="flex space-x-2 relative">
+                {aiLoadingField === "title" ? (
+                  <span className="absolute right-10 top-1/2 -translate-y-1/2 transform text-caption text-mutedDark animate-pulse flex items-center gap-1 whitespace-nowrap pr-1">
+                    <span>AI is generating</span><span className="text-caption">🤖</span>
+                  </span>
+                ) : (
+                  <button
+                    className={`text-mutedDark hover:text-secondary transition-colors ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => {
+                      setAiLoadingField("title");
+                      setTimeout(() => {
+                        getRandomVs();
+                        setAiLoadingField(null);
+                      }, 1000);
+                    }}
+                    disabled={!isLoggedIn}
+                    title="Generate with AI"
+                  >
+                    ✨
+                  </button>
+                )}
                 <button
                   className={`bg-accent text-white rounded-full w-8 h-8 flex items-center justify-center ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleStartNewClash}
@@ -566,14 +581,27 @@ const ClashFeed = ({ selectedTag, user }) => {
                   onKeyPress={handleKeyPress}
                   maxLength={80}
                 />
-                <button
-                  className="absolute right-2 top-1/2 -translate-y-1/2 text-mutedDark hover:text-secondary transition-colors"
-                  onClick={getRandomVs}
-                  type="button"
-                  tabIndex={-1}
-                >
-                  🎲
-                </button>
+                {aiLoadingField === "title" ? (
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-mutedDark animate-pulse">
+                    AI is generating 🤖
+                  </span>
+                ) : (
+                  <button
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-mutedDark hover:text-secondary transition-colors"
+                    onClick={() => {
+                      setAiLoadingField("title");
+                      setTimeout(() => {
+                        getRandomVs();
+                        setAiLoadingField(null);
+                      }, 1000);
+                    }}
+                    type="button"
+                    tabIndex={-1}
+                    title="Generate with AI"
+                  >
+                    ✨
+                  </button>
+                )}
               </div>
               {titleError && (
                 <p className="text-alert text-caption mt-1">{titleError}</p>
@@ -615,28 +643,42 @@ const ClashFeed = ({ selectedTag, user }) => {
 
             {/* Statement input */}
             <div className="mb-4">
-              <div className="flex justify-between items-center mb-1">
-                <label htmlFor="statement-input" className="block text-caption text-mutedDark">
-                  Statement
-                </label>
-                <button
-                  className="text-caption text-mutedDark hover:text-secondary bg-transparent border-none"
-                  onClick={generateMockStatement}
-                  type="button"
-                >
-                  Get help from AI to create ✨
-                </button>
+              <label htmlFor="statement-input" className="block text-caption text-mutedDark mb-1">
+                Statement
+              </label>
+              <div className="relative">
+                <textarea
+                  id="statement-input"
+                  placeholder="Why do you think your side is better?"
+                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-none px-3 py-2 pr-10"
+                  rows="2"
+                  value={statement}
+                  onChange={handleInputChange}
+                  onKeyPress={handleKeyPress}
+                  maxLength={200}
+                ></textarea>
+                {aiLoadingField === "statement" ? (
+                  <span className="absolute right-2 top-2 text-caption text-mutedDark animate-pulse">
+                    AI is generating 🤖
+                  </span>
+                ) : (
+                  <button
+                    className="absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors"
+                    onClick={() => {
+                      setAiLoadingField("statement");
+                      setTimeout(() => {
+                        generateMockStatement();
+                        setAiLoadingField(null);
+                      }, 1000);
+                    }}
+                    type="button"
+                    tabIndex={-1}
+                    title="Generate with AI"
+                  >
+                    ✨
+                  </button>
+                )}
               </div>
-              <textarea
-                id="statement-input"
-                placeholder="Why do you think your side is better?"
-                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-none px-3 py-2"
-                rows="2"
-                value={statement}
-                onChange={handleInputChange}
-                onKeyPress={handleKeyPress}
-                maxLength={200}
-              ></textarea>
               {statementError && (
                 <p className="text-alert text-caption mt-1">{statementError}</p>
               )}
@@ -663,16 +705,39 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </span>
                 ))}
               </div>
-              <input
-                id="tags-input"
-                type="text"
-                placeholder="Add tags separated by comma or Enter"
-                className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted focus:outline-none px-3 py-2"
-                value={tagInput}
-                onChange={handleTagInputChange}
-                onKeyDown={handleTagInputKeyDown}
-                maxLength={100}
-              />
+              <div className="relative">
+                <input
+                  id="tags-input"
+                  type="text"
+                  placeholder="Add tags separated by comma or Enter"
+                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted focus:outline-none px-3 py-2 pr-10"
+                  value={tagInput}
+                  onChange={handleTagInputChange}
+                  onKeyDown={handleTagInputKeyDown}
+                  maxLength={100}
+                />
+                {aiLoadingField === "tags" ? (
+                  <span className="absolute right-2 top-2 text-xs text-mutedDark animate-pulse">
+                    AI is generating 🤖
+                  </span>
+                ) : (
+                  <button
+                    className="absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors"
+                    type="button"
+                    onClick={() => {
+                      setAiLoadingField("tags");
+                      setTimeout(() => {
+                        setTags([...tags, "fun", "animals"].filter(tag => !tags.includes(tag)));
+                        setAiLoadingField(null);
+                      }, 1000);
+                    }}
+                    tabIndex={-1}
+                    title="Generate with AI"
+                  >
+                    ✨
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Submit button */}
