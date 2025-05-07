@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import ClashCard from "./ClashCard";
 import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
+import { sanitizeInput, formatGPTResponse, generatePromptFromForm } from "../utils/gptUtils.js";
 
 const ClashFeed = ({ selectedTag, user }) => {
   // State değişkenleri
@@ -10,7 +11,7 @@ const ClashFeed = ({ selectedTag, user }) => {
   const navigate = useNavigate();
   const [statement, setStatement] = useState("");
   const [titleValue, setTitleValue] = useState("");
-  const [selectedSide, setSelectedSide] = useState("A");
+  const [selectedSide, setSelectedSide] = useState(null);
   const [showDetailedForm, setShowDetailedForm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [allClashes, setAllClashes] = useState([]); // Store all clashes
@@ -292,6 +293,7 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Kullanıcının girdisine göre Side A ve Side B başlıklarını güncelleme
   const updateSideTitles = (text) => {
+    if (!text) return;
     // "vs", "veya", "vs.", "or", "-" gibi ayrıcılar aranabilir
     const dividers = [' vs ', ' vs. ', ' veya ', ' or ', ' - ', ' mi yoksa ', ' against '];
     
@@ -430,7 +432,7 @@ const ClashFeed = ({ selectedTag, user }) => {
   const handleClearForm = () => {
     setTitleValue("");
     setStatement("");
-    setSelectedSide("A");
+    setSelectedSide(null);
     setShowDetailedForm(false);
     setTags([]);
   };
@@ -444,17 +446,83 @@ const ClashFeed = ({ selectedTag, user }) => {
     }
   };
 
-  // Mock statement generator
-  const generateMockStatement = () => {
-    const statements = [
-      "This is clearly the superior option because of its innovation.",
-      "I've tried both, and there's no comparison - this one wins every time.",
-      "The quality and experience are incomparable.",
-      "Anyone who's spent time with both knows there's only one real choice.",
-      "The features and capabilities make this the obvious choice."
-    ];
-    const randomIndex = Math.floor(Math.random() * statements.length);
-    setStatement(statements[randomIndex]);
+  // GPT API Call Function
+  const handleAIGenerate = async (field) => {
+    if (!isLoggedIn) return;
+    setAiLoadingField(field);
+
+    try {
+      // Prepare the payload based on the field being generated
+      const payload = {
+        title: field === "title" ? "" : sanitizeInput(titleValue),
+        statement: field === "statement" ? "" : sanitizeInput(statement),
+        tags: tags.map(tag => sanitizeInput(tag))
+      };
+
+      if (field === "title") {
+        payload.statement = sanitizeInput(statement);
+        // Use special prompt for title generation
+        payload.prompt = `
+  Suggest a fun, engaging, and current-versus-style debate title.
+  It should follow the "X vs. Y" format.
+  Keep it short and entertaining, like "Cats vs. Dogs", "AI vs. Humans", or "Coffee vs. Tea".
+  Only return the title. No explanations.
+  `;
+      } else if (field === "statement") {
+        payload.title = sanitizeInput(titleValue);
+        // Add a custom prompt for statement generation
+        payload.prompt = `
+  Generate a concise, bold statement for the debate titled "${sanitizeInput(titleValue)}" that supports the selected side "${selectedSide}".
+  Only return the statement, no explanations.
+  `;
+      }
+      else if (field === "tags") {
+        // Prepare payload for tag generation
+        payload.title = sanitizeInput(titleValue);
+        payload.statement = sanitizeInput(statement);
+        payload.prompt = `
+  Generate up to 5 concise, single-word tags for the debate titled "${sanitizeInput(titleValue)}" which has the statement "${sanitizeInput(statement)}" and supports side "${selectedSide}". 
+  Return only a comma-separated list of tags, no extra text.
+  `;
+      }
+
+      console.log("Sending payload:", payload);
+
+      const res = await fetch("/api/gpt/generate", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || "Failed to fetch GPT response");
+      }
+
+      const data = await res.json();
+      console.log("Received response:", data);
+
+      if (field === "title") {
+        setTitleValue(data.generated);
+        updateSideTitles(data.generated);
+      } else if (field === "statement") {
+        setStatement(data.generated);
+      } else if (field === "tags") {
+        const newTags = data.generated
+          .split(",")
+          .map(t => t.trim())
+          .filter(t => t && !tags.includes(t) && t.length <= 20);
+        setTags([...tags, ...newTags].slice(0, 5));
+      }
+    } catch (err) {
+      console.error("GPT Generation Error:", err);
+      alert(err.message || "Something went wrong while generating content.");
+    } finally {
+      setAiLoadingField(null);
+    }
   };
   
   // Enhanced tag input validation
@@ -510,7 +578,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                 type="text"
                 placeholder="What's your VS today? (e.g. Xbox vs PlayStation)"
                 className={`flex-grow bg-transparent border-none focus:outline-none text-caption text-secondary ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
-                value={titleValue}
+                value={titleValue ?? ""}
                 onChange={handleTitleChange}
                 onKeyPress={handleKeyPress}
                 disabled={!isLoggedIn}
@@ -523,13 +591,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                 ) : (
                   <button
                     className={`text-mutedDark hover:text-secondary transition-colors ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    onClick={() => {
-                      setAiLoadingField("title");
-                      setTimeout(() => {
-                        getRandomVs();
-                        setAiLoadingField(null);
-                      }, 1000);
-                    }}
+                    onClick={() => handleAIGenerate("title")}
                     disabled={!isLoggedIn}
                     title="Generate with AI"
                   >
@@ -576,25 +638,19 @@ const ClashFeed = ({ selectedTag, user }) => {
                   type="text"
                   placeholder="e.g. Xbox vs PlayStation"
                   className="w-full pr-10 px-3 py-2 bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none"
-                  value={titleValue}
+                  value={titleValue ?? ""}
                   onChange={handleTitleChange}
                   onKeyPress={handleKeyPress}
                   maxLength={80}
                 />
                 {aiLoadingField === "title" ? (
-                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-caption text-mutedDark animate-pulse">
-                    AI is generating 🤖
+                  <span className="absolute right-2 top-1/2 -translate-y-1/2 transform text-caption text-mutedDark animate-pulse flex items-center gap-1 whitespace-nowrap pr-1">
+                    <span>AI is generating</span><span className="text-caption">🤖</span>
                   </span>
                 ) : (
                   <button
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-mutedDark hover:text-secondary transition-colors"
-                    onClick={() => {
-                      setAiLoadingField("title");
-                      setTimeout(() => {
-                        getRandomVs();
-                        setAiLoadingField(null);
-                      }, 1000);
-                    }}
+                    onClick={() => handleAIGenerate("title")}
                     type="button"
                     tabIndex={-1}
                     title="Generate with AI"
@@ -652,7 +708,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                   placeholder="Why do you think your side is better?"
                   className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-none px-3 py-2 pr-10"
                   rows="2"
-                  value={statement}
+                  value={statement ?? ""}
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   maxLength={200}
@@ -663,17 +719,12 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </span>
                 ) : (
                   <button
-                    className="absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors"
-                    onClick={() => {
-                      setAiLoadingField("statement");
-                      setTimeout(() => {
-                        generateMockStatement();
-                        setAiLoadingField(null);
-                      }, 1000);
-                    }}
+                    className={`absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors ${!selectedSide ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    onClick={() => handleAIGenerate("statement")}
                     type="button"
                     tabIndex={-1}
                     title="Generate with AI"
+                    disabled={!selectedSide}
                   >
                     ✨
                   </button>
@@ -722,17 +773,12 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </span>
                 ) : (
                   <button
-                    className="absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors"
+                    className={`absolute right-2 top-2 text-mutedDark hover:text-secondary transition-colors ${!selectedSide ? 'opacity-50 cursor-not-allowed' : ''}`}
                     type="button"
-                    onClick={() => {
-                      setAiLoadingField("tags");
-                      setTimeout(() => {
-                        setTags([...tags, "fun", "animals"].filter(tag => !tags.includes(tag)));
-                        setAiLoadingField(null);
-                      }, 1000);
-                    }}
+                    onClick={() => handleAIGenerate("tags")}
                     tabIndex={-1}
                     title="Generate with AI"
+                    disabled={!selectedSide}
                   >
                     ✨
                   </button>

@@ -1,11 +1,13 @@
 import dotenv from 'dotenv';
 dotenv.config();
+console.log("✅ OPENAI_API_KEY:", process.env.OPENAI_API_KEY?.slice(0, 8));
 import express from 'express';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import clashRoutes from './src/routes/clashRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
+import gptRoutes from './src/routes/gptRoutes.js';
 
 const app = express();
 // Trust first proxy (needed for secure cookies when behind a proxy)
@@ -78,6 +80,7 @@ app.get('/test', (req, res) => {
 // API routes
 app.use('/api/clashes', clashRoutes);
 app.use('/api/auth', authRoutes);
+app.use('/api/gpt', gptRoutes);
 
 // 404 handler
 app.use((req, res) => {
