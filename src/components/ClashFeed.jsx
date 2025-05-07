@@ -31,6 +31,38 @@ const ClashFeed = ({ selectedTag, user }) => {
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
 
+  // Load saved form data from localStorage
+  useEffect(() => {
+    const savedTitle = localStorage.getItem("vs_title");
+    const savedStatement = localStorage.getItem("vs_statement");
+    const savedSide = localStorage.getItem("vs_side");
+    const savedTags = localStorage.getItem("vs_tags");
+
+    if (savedTitle) setTitleValue(savedTitle);
+    if (savedStatement) setStatement(savedStatement);
+    if (savedSide) setSelectedSide(savedSide);
+    if (savedTags) {
+      try {
+        const parsedTags = JSON.parse(savedTags);
+        if (Array.isArray(parsedTags)) setTags(parsedTags);
+      } catch (e) {
+        console.error("Failed to parse saved tags:", e);
+      }
+    }
+  }, []);
+
+  // Save form data to localStorage
+  useEffect(() => {
+    localStorage.setItem("vs_title", titleValue);
+    localStorage.setItem("vs_statement", statement);
+    localStorage.setItem("vs_side", selectedSide || "");
+    localStorage.setItem("vs_tags", JSON.stringify(tags));
+  }, [titleValue, statement, selectedSide, tags]);
+
+  // Preview modal state
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [pendingClashData, setPendingClashData] = useState(null);
+
   // AI loading field state: "title", "statement", or "tags"
   const [aiLoadingField, setAiLoadingField] = useState(null);
 
@@ -195,6 +227,28 @@ const ClashFeed = ({ selectedTag, user }) => {
     };
   }, [hasMore, isLoading, isLoadingMore, offset, filteredClashes]);
 
+  // Handle clicks outside the sort dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        sortMenuRef.current &&
+        !sortMenuRef.current.contains(event.target)
+      ) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    if (showSortDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    } else {
+      document.removeEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSortDropdown]);
+
   // Reset loading states when filter changes
   useEffect(() => {
     setAllItemsLoaded(false);
@@ -255,37 +309,45 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Input alanı değiştiğinde state'i güncelleyen fonksiyon
   const handleInputChange = (event) => {
-    setStatement(event.target.value);
+    const val = event.target.value;
+    setStatement(val);
   };
 
   // Title alanı değiştiğinde state'i güncelleyen fonksiyon
   const handleTitleChange = (event) => {
-    setTitleValue(event.target.value);
-    // Title değiştiğinde Side A ve Side B başlıklarını güncelle
-    updateSideTitles(event.target.value);
+    const val = event.target.value;
+    setTitleValue(val);
+    updateSideTitles(val);
   };
 
   // Enter tuşuna basıldığında form geçişini sağlayan fonksiyon
   const handleKeyPress = (event) => {
     if (!isLoggedIn) return;
-    
-    // Enter tuşuna basıldığında ve input alanında değer varsa
+
     if (event.key === "Enter") {
-      // Eğer basit form gösteriliyorsa ve title alanında değer varsa detaylı forma geç
       if (!showDetailedForm && titleValue.trim() !== "") {
         handleStartNewClash();
-      } 
-      // Eğer detaylı formda ise, sırayla alanlar arasında geçiş yap
-      else if (showDetailedForm) {
+      } else if (showDetailedForm) {
         if (event.target.id === "title-vs-input" && titleValue.trim() !== "") {
-          document.getElementById("statement-input").focus();
-        } else if (event.target.id === "statement-input") {
-          document.getElementById("supporting-argument-input").focus();
-        } else if (event.target.id === "supporting-argument-input" && titleValue.trim() !== "") {
+          document.getElementById("statement-input")?.focus();
+        } else if (event.target.id === "statement-input" && statement.trim().length >= 10) {
+          document.getElementById("supporting-argument-input")?.focus();
+        } else if (event.target.id === "supporting-argument-input") {
           handleReleaseClash();
         }
       }
     }
+  };
+  // Playful emoji suggestion helper
+  const suggestEmojis = (text) => {
+    const keywords = ["fun", "battle", "fire", "love", "money", "tech"];
+    const emojis = ["🎉", "⚔️", "🔥", "❤️", "💰", "🤖"];
+    for (let i = 0; i < keywords.length; i++) {
+      if (text.toLowerCase().includes(keywords[i])) {
+        return emojis[i];
+      }
+    }
+    return "";
   };
 
   // Side seçimi değiştiğinde çalışacak fonksiyon
@@ -425,18 +487,56 @@ const ClashFeed = ({ selectedTag, user }) => {
 
     if (!titleValue.trim()) {
       setTitleError("Please enter a title for your clash!");
+      // Highlight the invalid title input
+      const titleInput = document.getElementById("title-vs-input");
+      if (titleInput) {
+        titleInput.classList.add("ring-2", "ring-accent", "animate-pulse");
+        setTimeout(() => {
+          titleInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
+        }, 1000);
+      }
       return;
     }
 
     // Enhanced statement validation
     if (!statement.trim()) {
       setStatementError("Please add your bold statement!");
+      // Highlight the invalid statement input
+      const statementInput = document.getElementById("statement-input");
+      if (statementInput) {
+        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
+        setTimeout(() => {
+          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
+        }, 1000);
+      }
       return;
     }
-    
+
+    // ---- Side selection check ----
+    if (!selectedSide) {
+      alert("Please pick a side for your clash!");
+      const sideButtons = document.querySelectorAll(".pick-your-side-button");
+      sideButtons.forEach(button => {
+        button.classList.add("ring-2", "ring-accent", "animate-pulse");
+        setTimeout(() => {
+          button.classList.remove("ring-2", "ring-accent", "animate-pulse");
+        }, 1000);
+      });
+      return;
+    }
+    // ---- End side selection check ----
+
     // Check statement length
-    if (statement.trim().length < 10) {
-      setStatementError("Your statement is too short. Please be more descriptive.");
+    if (statement.trim().length < 25) {
+      setStatementError("Your statement is too short. Please write at least 25 characters.");
+      // Highlight the invalid statement input
+      const statementInput = document.getElementById("statement-input");
+      if (statementInput) {
+        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
+        setTimeout(() => {
+          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
+        }, 1000);
+      }
       return;
     }
 
@@ -449,46 +549,34 @@ const ClashFeed = ({ selectedTag, user }) => {
     }
     lastClashTimestampRef.current = now;
 
-    setIsLoading(true);
+    const clashData = {
+      vs_title: titleValue,
+      vs_statement: statement,
+      side: selectedSide,
+      tags: tags,
+      creator: user?._id,
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+    };
 
     try {
-      // Prepare data for submission
-      const clashData = {
-        vs_title: titleValue,
-        vs_statement: statement,
-        side: selectedSide,
-        tags: tags,
-        creator: user?._id,
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 saat sonrası
-      };
-
-      // Send POST request to create clash
       const response = await fetch("http://localhost:8080/api/clashes", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include", // Important: include cookies with the request
-        body: JSON.stringify(clashData),
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(clashData)
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to create clash");
-      }
+      if (!response.ok) throw new Error("Failed to create clash");
 
       const result = await response.json();
-
-      // Clear form and reset states
+      setPendingClashData(result);
       handleClearForm();
-      
-      // Prepend the new clash to the current list, filtering out any duplicate _id
-      setAllClashes(prev => {
-        const filtered = prev.filter(item => String(item._id) !== String(result._id));
-        return [result, ...filtered];
-      });
+      setAllClashes(prev => [result, ...prev.filter(item => String(item._id) !== String(result._id))]);
       setShowSuccessMessage(true);
-      setTimeout(() => setShowSuccessMessage(false), 3000);
-      
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setShowDetailedForm(false); // Hide the form after showing the success message
+      }, 3000);
     } catch (error) {
       alert("Failed to create clash. Please try again.");
     } finally {
@@ -501,8 +589,11 @@ const ClashFeed = ({ selectedTag, user }) => {
     setTitleValue("");
     setStatement("");
     setSelectedSide(null);
-    setShowDetailedForm(false);
     setTags([]);
+    localStorage.removeItem("vs_title");
+    localStorage.removeItem("vs_statement");
+    localStorage.removeItem("vs_side");
+    localStorage.removeItem("vs_tags");
   };
 
   // Side title edit handler
@@ -574,31 +665,24 @@ const ClashFeed = ({ selectedTag, user }) => {
         payload.prompt = selectedPrompt;
       }
       else if (field === "tags") {
-        // Prepare payload for tag generation with randomized prompts
+        // Context-aware keyword extraction from statement for tag generation
         payload.title = sanitizeInput(titleValue);
         payload.statement = sanitizeInput(statement);
-        const randomTagPrompts = [
-          `
-  Generate up to 5 relevant and unique single-word tags for a debate titled "${sanitizeInput(titleValue)}".
-  Consider the statement: "${sanitizeInput(statement)}" and the chosen side: "${selectedSide}".
-  Focus on keywords that reflect the core themes, ideas, or cultural references.
-  Return only a comma-separated list of tags. No extra text.
-  `,
-          `
-  Based on the topic "${sanitizeInput(titleValue)}" and the statement "${sanitizeInput(statement)}", generate 3 to 5 concise hashtags or keywords.
-  Make sure they are relevant to the chosen side: "${selectedSide}", and diverse in subject.
-  Return the tags as a comma-separated list. Do not include explanations.
-  `,
-          `
-  Provide a comma-separated list of 5 engaging and contextually relevant one-word tags for a versus debate.
-  Title: "${sanitizeInput(titleValue)}"
-  Statement: "${sanitizeInput(statement)}"
-  Side: "${selectedSide}"
-  Make them clear, short, and directly connected to the topic.
-  `
-        ];
-        const selectedPrompt = randomTagPrompts[Math.floor(Math.random() * randomTagPrompts.length)];
-        payload.prompt = selectedPrompt;
+        const extractedKeywords = sanitizeInput(statement)
+          .split(/\s+/)
+          .filter(word => word.length > 4)
+          .slice(0, 5)
+          .join(", ");
+
+        const contextAwarePrompt = `
+Based on the title "${sanitizeInput(titleValue)}" and the following statement:
+"${sanitizeInput(statement)}"
+
+Identify up to 5 highly relevant, one-word tags that reflect key themes, topics, or emotions. Prioritize the following extracted keywords: ${extractedKeywords}.
+
+Return only a comma-separated list of concise tags. No explanations.
+`;
+        payload.prompt = contextAwarePrompt;
       }
 
       console.log("Sending payload:", payload);
@@ -664,12 +748,33 @@ const ClashFeed = ({ selectedTag, user }) => {
     setTagInput(e.target.value);
   };
 
+  // Tag remove handler
+  const handleTagRemove = (tagToRemove) => {
+    setTags(prev => prev.filter(tag => tag !== tagToRemove));
+  };
+
   // Success toast above main content
   return (
     <>
       {showSuccessMessage && (
-        <div className="fixed top-5 left-1/2 transform -translate-x-1/2 bg-green-100 text-green-800 text-caption px-4 py-2 rounded shadow z-50 transition-all duration-300">
-          ✅ Your clash has been released successfully!
+        <div className="fixed top-6 left-1/2 transform -translate-x-1/2 w-[90%] max-w-xl z-50 bg-bgwhite dark:bg-secondary border border-muted rounded-2xl shadow-lg p-5 transition-all duration-300">
+          <div className="flex flex-col gap-2">
+            <h3 className="text-heading text-secondary flex items-center gap-2 mb-2">
+              ⚔️ Clash Created!
+            </h3>
+            <div className="text-caption text-mutedDark">Here’s your newly released clash:</div>
+            <div className="border border-muted rounded-xl p-3 bg-muted25 dark:bg-muted-dark">
+              <div className="text-subheading text-secondary font-semibold mb-1">{pendingClashData?.vs_title || titleValue}</div>
+              <div className="text-body text-mutedDark mb-2">{pendingClashData?.vs_statement || statement}</div>
+              <div className="flex flex-wrap gap-2">
+                {(pendingClashData?.tags || tags).map(tag => (
+                  <span key={tag} className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-white text-secondary border border-muted">
+                    #{tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       )}
       <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
@@ -717,13 +822,14 @@ const ClashFeed = ({ selectedTag, user }) => {
                   className={`bg-accent text-white rounded-full w-8 h-8 flex items-center justify-center ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
                   onClick={handleStartNewClash}
                   disabled={!isLoggedIn}
+                  title="Start a new VS clash"
                 >
                   ⚔️
                 </button>
               </div>
             </div>
             {!isLoggedIn && (
-              <div className="absolute left-0 bottom-full mb-2 bg-secondary text-white text-caption px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-200 whitespace-nowrap">
+              <div className="absolute left-0 bottom-full mb-2 bg-secondary text-white text-caption px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity duration-75 whitespace-nowrap">
                 Sign in to create a clash
               </div>
             )}
@@ -738,7 +844,10 @@ const ClashFeed = ({ selectedTag, user }) => {
               <h3 className="text-body font-semibold text-secondary">Create New VS</h3>
               <button 
                 className="text-mutedDark hover:text-alert"
-                onClick={handleClearForm}
+                onClick={() => {
+                  handleClearForm();
+                  setShowDetailedForm(false);
+                }}
               >
                 ✕
               </button>
@@ -748,16 +857,17 @@ const ClashFeed = ({ selectedTag, user }) => {
             <div className="mb-4">
               <label htmlFor="title-vs-input" className="block text-caption text-mutedDark mb-1">Title of VS</label>
               <div className="relative">
-                <input
-                  id="title-vs-input"
-                  type="text"
-                  placeholder="e.g. Xbox vs PlayStation"
-                  className="w-full pr-10 px-3 py-2 bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none"
-                  value={titleValue ?? ""}
-                  onChange={handleTitleChange}
-                  onKeyPress={handleKeyPress}
-                  maxLength={80}
-                />
+              <input
+                id="title-vs-input"
+                type="text"
+                placeholder="e.g. Xbox vs PlayStation"
+                className="w-full pr-10 px-3 py-2 bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none"
+                value={titleValue ?? ""}
+                onChange={handleTitleChange}
+                onKeyPress={handleKeyPress}
+                maxLength={80}
+                minLength={10}
+              />
                 {aiLoadingField === "title" ? (
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 transform text-caption text-mutedDark animate-pulse flex items-center gap-1 whitespace-nowrap pr-1">
                     <span>AI is generating</span><span className="text-caption">🤖</span>
@@ -774,47 +884,47 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </button>
                 )}
               </div>
-              <p className="text-caption text-mutedDark mt-1 text-right">
+              <p className={`text-caption opacity-75 mt-1 text-right ${titleValue.length > 70 ? 'text-accent' : titleValue.length < 10 ? 'text-accent' : 'text-mutedDark'}`}>
                 {titleValue.length}/80
+                {titleValue.length > 0 && titleValue.length < 10 && (
+                  <span className="ml-2 text-accent opacity-75">Min. 10 characters</span>
+                )}
               </p>
-              {titleError && (
-                <p className="text-alert text-caption mt-1">{titleError}</p>
-              )}
             </div>
 
             {/* Side selector buttons */}
             <div className="mb-4">
               <label className="block text-caption text-mutedDark mb-1">Pick your side</label>
-              <div className="flex space-x-3">
-                <button
-                  onClick={() => handleSideChange("A")}
-                  title={fullSideATitle}
-                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
-                    selectedSide === "A"
-                      ? "border-accent bg-accent text-white"
-                      : "border-accent text-secondary border-opacity-25 border-dashed"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate">{sideATitle}</span>
-                    {selectedSide === "A" && <span>✓</span>}
-                  </div>
-                </button>
-                <button
-                  onClick={() => handleSideChange("B")}
-                  title={fullSideBTitle}
-                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
-                    selectedSide === "B"
-                      ? "border-accent bg-accent text-white"
-                      : "border-accent text-secondary border-opacity-25 border-dashed"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="truncate">{sideBTitle}</span>
-                    {selectedSide === "B" && <span>✓</span>}
-                  </div>
-                </button>
-              </div>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => handleSideChange("A")}
+                title={fullSideATitle}
+                className={`pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
+                  selectedSide === "A"
+                    ? "border-accent bg-accent text-white"
+                    : "border-accent text-secondary border-opacity-25 border-dashed"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="truncate">{sideATitle}</span>
+                  {selectedSide === "A" && <span>✓</span>}
+                </div>
+              </button>
+              <button
+                onClick={() => handleSideChange("B")}
+                title={fullSideBTitle}
+                className={`pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
+                  selectedSide === "B"
+                    ? "border-accent bg-accent text-white"
+                    : "border-accent text-secondary border-opacity-25 border-dashed"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="truncate">{sideBTitle}</span>
+                  {selectedSide === "B" && <span>✓</span>}
+                </div>
+              </button>
+            </div>
             </div>
 
             {/* Statement input */}
@@ -826,7 +936,7 @@ const ClashFeed = ({ selectedTag, user }) => {
                 <textarea
                   id="statement-input"
                   placeholder="Why do you think your side is better?"
-                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize px-3 py-2 pr-10"
+                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-y max-h-40 px-3 py-2 pr-10"
                   rows="2"
                   value={statement ?? ""}
                   onChange={handleInputChange}
@@ -850,12 +960,12 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </button>
                 )}
               </div>
-              <p className={`text-caption mt-1 text-right ${statement.length > 230 ? 'text-alert' : 'text-mutedDark'}`}>
+              <p className={`text-caption opacity-75 mt-1 text-right ${statement.length > 230 ? 'text-accent' : statement.length < 25 ? 'text-accent' : 'text-mutedDark'}`}>
                 {statement.length}/250
+                {statement.length > 0 && statement.length < 25 && (
+                  <span className="ml-2 text-accent opacity-75">Min. 25 characters</span>
+                )}
               </p>
-              {statementError && (
-                <p className="text-alert text-caption mt-1">{statementError}</p>
-              )}
             </div>
 
             {/* Supporting argument removed */}
@@ -916,7 +1026,13 @@ const ClashFeed = ({ selectedTag, user }) => {
                 onClick={handleReleaseClash}
                 disabled={isLoading}
               >
-                {isLoading ? "Processing..." : "Release Clash ⚔️"}
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <span className="animate-spin">🔄</span> Processing...
+                  </span>
+                ) : (
+                  "Release Clash ⚔️"
+                )}
               </button>
             </div>
           </div>
@@ -1031,6 +1147,7 @@ const ClashFeed = ({ selectedTag, user }) => {
         </div>
       )}
       </div>
+
     </>
   );
 };
