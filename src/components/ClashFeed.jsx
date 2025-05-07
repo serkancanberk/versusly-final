@@ -227,6 +227,8 @@ const ClashFeed = ({ selectedTag, user }) => {
   // Side A ve Side B için dinamik başlıklar
   const [sideATitle, setSideATitle] = useState("Side A");
   const [sideBTitle, setSideBTitle] = useState("Side B");
+  const [fullSideATitle, setFullSideATitle] = useState("Side A");
+  const [fullSideBTitle, setFullSideBTitle] = useState("Side B");
 
   // Random VS örnekleri - Gerçek bir backend entegrasyonu için daha sonra güncellenecek
   const randomVsExamples = [
@@ -293,49 +295,115 @@ const ClashFeed = ({ selectedTag, user }) => {
 
   // Kullanıcının girdisine göre Side A ve Side B başlıklarını güncelleme
   const updateSideTitles = (text) => {
-    if (!text) return;
-    // "vs", "veya", "vs.", "or", "-" gibi ayrıcılar aranabilir
-    const dividers = [' vs ', ' vs. ', ' veya ', ' or ', ' - ', ' mi yoksa ', ' against '];
+    // 1. Handle empty text case
+    if (!text || text.trim() === "") {
+      setSideATitle("Side A");
+      setSideBTitle("Side B");
+      setFullSideATitle("Side A");
+      setFullSideBTitle("Side B");
+      return;
+    }
+
+    // Helper function to format side titles
+    const formatSideTitle = (title) => {
+      const fullTitle = title.trim();
+      const displayTitle = fullTitle.length > 10 ? fullTitle.substring(0, 10) + '…' : fullTitle;
+      return { fullTitle, displayTitle };
+    };
+
+    // Helper function to extract meaningful parts from text
+    const extractMeaningfulParts = (text) => {
+      const words = text.trim().split(/\s+/);
+      
+      // Handle different word count cases
+      if (words.length >= 4) {
+        // Take first two words for side A, last two for side B
+        return {
+          sideA: words.slice(0, 2).join(" "),
+          sideB: words.slice(-2).join(" ")
+        };
+      } else if (words.length === 3) {
+        // For three words, take first word for A, last two for B
+        return {
+          sideA: words[0],
+          sideB: words.slice(1).join(" ")
+        };
+      } else if (words.length === 2) {
+        // For two words, split evenly
+        return {
+          sideA: words[0],
+          sideB: words[1]
+        };
+      } else {
+        // For single word, duplicate it
+        return {
+          sideA: words[0],
+          sideB: words[0]
+        };
+      }
+    };
+
+    // Helper function to update side titles
+    const updateSides = (sideA, sideB) => {
+      const { fullTitle: fullA, displayTitle: displayA } = formatSideTitle(sideA);
+      const { fullTitle: fullB, displayTitle: displayB } = formatSideTitle(sideB);
+      
+      setFullSideATitle(fullA);
+      setFullSideBTitle(fullB);
+      setSideATitle(displayA);
+      setSideBTitle(displayB);
+    };
+
+    // 2. Try to find a divider first
+    const dividers = [
+      ' vs ', ' vs. ', ' - ', ' or ', ' karşı ', ' against ',
+      ' veya ', ' mi yoksa ', ' versus ', ' vs ', ' vs. ',
+      ' versus ', ' against ', ' versus ', ' vs ', ' vs. '
+    ];
     
     let foundMatch = false;
     
     for (const divider of dividers) {
       if (text.toLowerCase().includes(divider)) {
-        // Metni ayırıcıya göre böl
         const parts = text.split(divider);
         if (parts.length >= 2) {
-          // En fazla 10 karakter al
-          const sideA = parts[0].trim().split(' ').pop();
-          const sideB = parts[1].trim().split(' ')[0];
+          const rawA = parts[0].trim();
+          const rawB = parts[1].trim();
           
-          setSideATitle(sideA.length > 10 ? sideA.substring(0, 10) + '...' : sideA);
-          setSideBTitle(sideB.length > 10 ? sideB.substring(0, 10) + '...' : sideB);
+          // Clean up any remaining dividers or special characters
+          const cleanA = rawA.replace(/['"]/g, '').replace(/[.,;:!?]$/, '');
+          const cleanB = rawB.replace(/['"]/g, '').replace(/[.,;:!?]$/, '');
+          
+          updateSides(cleanA, cleanB);
           foundMatch = true;
           break;
         }
       }
     }
     
-    // Özel durum: "X'i Y'ye tercih ederim" yapısı
+    // 3. Special case: "X'i Y'ye tercih ederim" structure
     if (!foundMatch && text.includes("tercih ederim")) {
       const parts = text.split("tercih ederim");
       if (parts.length > 0) {
         const preferParts = parts[0].split("'");
-        if (preferParts.length >= 3) { // X'i Y'ye formatında
-          const sideA = preferParts[0].trim().split(' ').pop();
-          const sideB = preferParts[2].trim().split(' ')[0].replace("ye", "").replace("ya", "");
+        if (preferParts.length >= 3) {
+          const rawA = preferParts[0].trim();
+          const rawB = preferParts[2].trim()
+            .replace(/ye$/, '')
+            .replace(/ya$/, '')
+            .replace(/ye$/, '')
+            .replace(/ya$/, '');
           
-          setSideATitle(sideA.length > 10 ? sideA.substring(0, 10) + '...' : sideA);
-          setSideBTitle(sideB.length > 10 ? sideB.substring(0, 10) + '...' : sideB);
+          updateSides(rawA, rawB);
           foundMatch = true;
         }
       }
     }
     
-    // Eğer bir eşleşme bulunamadıysa varsayılan değerlere geri dön
-    if (!foundMatch && text.length === 0) {
-      setSideATitle("Side A");
-      setSideBTitle("Side B");
+    // 4. If no match found, use the fallback logic
+    if (!foundMatch) {
+      const { sideA, sideB } = extractMeaningfulParts(text);
+      updateSides(sideA, sideB);
     }
   };
 
@@ -461,29 +529,76 @@ const ClashFeed = ({ selectedTag, user }) => {
 
       if (field === "title") {
         payload.statement = sanitizeInput(statement);
-        // Use special prompt for title generation
-        payload.prompt = `
-  Suggest a fun, engaging, and current-versus-style debate title.
-  It should follow the "X vs. Y" format.
-  Keep it short and entertaining, like "Cats vs. Dogs", "AI vs. Humans", or "Coffee vs. Tea".
-  Only return the title. No explanations.
-  `;
+        // Use randomized prompt for title generation
+        const randomTitlePrompts = [
+          `
+    Suggest a creative and unexpected "X vs Y" style debate title.
+    It can reference trends, generational habits, technologies, foods, cultural icons, or philosophical ideas.
+    Format: "X vs. Y". Keep it fun, modern, and intriguing.
+    Examples: "Boomers vs. Gen Z", "Minimalism vs. Maximalism", "Street Food vs. Fine Dining", "Reality vs. Fantasy".
+    Only return the title. No extra text.
+    `,
+          `
+    Generate a quirky and viral-style "X vs. Y" debate title that could easily go viral on TikTok or Reddit. 
+    Mix everyday life dilemmas, pop culture, and lifestyle choices. Keep it short and punchy.
+    Only return the title.
+    `,
+          `
+    Generate a totally random and unexpected versus-style debate title in the format "X vs. Y".
+    Avoid repeating common pairs like “Cats vs. Dogs” or “Netflix vs. Disney+”.
+    Use ideas from pop culture, memes, tech, lifestyle, and philosophy.
+    Only return the title.
+    `
+        ];
+        const selectedPrompt = randomTitlePrompts[Math.floor(Math.random() * randomTitlePrompts.length)];
+        payload.prompt = selectedPrompt;
       } else if (field === "statement") {
         payload.title = sanitizeInput(titleValue);
-        // Add a custom prompt for statement generation
-        payload.prompt = `
-  Generate a concise, bold statement for the debate titled "${sanitizeInput(titleValue)}" that supports the selected side "${selectedSide}".
-  Only return the statement, no explanations.
-  `;
+        // Add a more varied and creative prompt for statement generation
+        const randomStatementPrompts = [
+          `
+  Generate a short, bold, and persuasive statement that strongly supports the side "${selectedSide}" in the debate titled "${sanitizeInput(titleValue)}".
+  Make it punchy and passionate. No explanations, just the statement. Limit the statement to a maximum of 250 characters.
+  `,
+          `
+  Write a confident and opinionated sentence that would spark a fun debate on the topic "${sanitizeInput(titleValue)}" from the perspective of side "${selectedSide}".
+  Only return the statement. Limit the statement to a maximum of 250 characters.
+  `,
+          `
+  Imagine you're trying to convince everyone that "${selectedSide}" is absolutely right in the clash titled "${sanitizeInput(titleValue)}".
+  Generate one strong, tweet-sized statement that feels clever or provocative.
+  Only return the statement. Limit the statement to a maximum of 250 characters.  
+  `
+        ];
+        const selectedPrompt = randomStatementPrompts[Math.floor(Math.random() * randomStatementPrompts.length)];
+        payload.prompt = selectedPrompt;
       }
       else if (field === "tags") {
-        // Prepare payload for tag generation
+        // Prepare payload for tag generation with randomized prompts
         payload.title = sanitizeInput(titleValue);
         payload.statement = sanitizeInput(statement);
-        payload.prompt = `
-  Generate up to 5 concise, single-word tags for the debate titled "${sanitizeInput(titleValue)}" which has the statement "${sanitizeInput(statement)}" and supports side "${selectedSide}". 
-  Return only a comma-separated list of tags, no extra text.
-  `;
+        const randomTagPrompts = [
+          `
+  Generate up to 5 relevant and unique single-word tags for a debate titled "${sanitizeInput(titleValue)}".
+  Consider the statement: "${sanitizeInput(statement)}" and the chosen side: "${selectedSide}".
+  Focus on keywords that reflect the core themes, ideas, or cultural references.
+  Return only a comma-separated list of tags. No extra text.
+  `,
+          `
+  Based on the topic "${sanitizeInput(titleValue)}" and the statement "${sanitizeInput(statement)}", generate 3 to 5 concise hashtags or keywords.
+  Make sure they are relevant to the chosen side: "${selectedSide}", and diverse in subject.
+  Return the tags as a comma-separated list. Do not include explanations.
+  `,
+          `
+  Provide a comma-separated list of 5 engaging and contextually relevant one-word tags for a versus debate.
+  Title: "${sanitizeInput(titleValue)}"
+  Statement: "${sanitizeInput(statement)}"
+  Side: "${selectedSide}"
+  Make them clear, short, and directly connected to the topic.
+  `
+        ];
+        const selectedPrompt = randomTagPrompts[Math.floor(Math.random() * randomTagPrompts.length)];
+        payload.prompt = selectedPrompt;
       }
 
       console.log("Sending payload:", payload);
@@ -659,6 +774,9 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </button>
                 )}
               </div>
+              <p className="text-caption text-mutedDark mt-1 text-right">
+                {titleValue.length}/80
+              </p>
               {titleError && (
                 <p className="text-alert text-caption mt-1">{titleError}</p>
               )}
@@ -669,28 +787,30 @@ const ClashFeed = ({ selectedTag, user }) => {
               <label className="block text-caption text-mutedDark mb-1">Pick your side</label>
               <div className="flex space-x-3">
                 <button
-                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border ${
-                    selectedSide === "A" 
-                      ? "border-accent bg-accent text-white" 
+                  onClick={() => handleSideChange("A")}
+                  title={fullSideATitle}
+                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
+                    selectedSide === "A"
+                      ? "border-accent bg-accent text-white"
                       : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
-                  onClick={() => handleSideChange("A")}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{sideATitle}</span>
+                    <span className="truncate">{sideATitle}</span>
                     {selectedSide === "A" && <span>✓</span>}
                   </div>
                 </button>
                 <button
-                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border ${
-                    selectedSide === "B" 
-                      ? "border-accent bg-accent text-white" 
+                  onClick={() => handleSideChange("B")}
+                  title={fullSideBTitle}
+                  className={`flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
+                    selectedSide === "B"
+                      ? "border-accent bg-accent text-white"
                       : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
-                  onClick={() => handleSideChange("B")}
                 >
                   <div className="flex items-center justify-between">
-                    <span>{sideBTitle}</span>
+                    <span className="truncate">{sideBTitle}</span>
                     {selectedSide === "B" && <span>✓</span>}
                   </div>
                 </button>
@@ -706,12 +826,12 @@ const ClashFeed = ({ selectedTag, user }) => {
                 <textarea
                   id="statement-input"
                   placeholder="Why do you think your side is better?"
-                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-none px-3 py-2 pr-10"
+                  className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize px-3 py-2 pr-10"
                   rows="2"
                   value={statement ?? ""}
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
-                  maxLength={200}
+                  maxLength={250}
                 ></textarea>
                 {aiLoadingField === "statement" ? (
                   <span className="absolute right-2 top-2 text-caption text-mutedDark animate-pulse">
@@ -730,6 +850,9 @@ const ClashFeed = ({ selectedTag, user }) => {
                   </button>
                 )}
               </div>
+              <p className={`text-caption mt-1 text-right ${statement.length > 230 ? 'text-alert' : 'text-mutedDark'}`}>
+                {statement.length}/250
+              </p>
               {statementError && (
                 <p className="text-alert text-caption mt-1">{statementError}</p>
               )}
