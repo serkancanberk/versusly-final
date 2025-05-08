@@ -41,7 +41,14 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
     try {
       const response = await fetch("http://localhost:8080/api/clashes/top-tags");
       const data = await response.json();
-      setTopTags(Array.isArray(data) ? data.filter(tag => tag && typeof tag === 'object' && tag.tag && typeof tag.count === 'number') : []);
+      // Ensure we have valid data and sort by count
+      const filtered = Array.isArray(data) 
+        ? data
+            .filter(tag => tag && typeof tag === 'object' && tag.tag && typeof tag.count === 'number')
+            .sort((a, b) => b.count - a.count)
+            .slice(0, 10)
+        : [];
+      setTopTags(filtered);
     } catch (error) {
       console.error("Error fetching top tags:", error);
       setTopTags([]); // Ensure fallback to empty array on error
@@ -53,8 +60,8 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
   // Debounced search function
   const debouncedSearch = debounce((query) => {
     onSearch(query);
-    // Save to recent searches
-    if (query.trim()) {
+    // Save to recent searches only if query has 3 or more characters
+    if (query.trim().length >= 3) {
       setRecentSearches(prev => {
         const newSearches = [query, ...prev.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
         localStorage.setItem("recentSearches", JSON.stringify(newSearches));
@@ -142,12 +149,14 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
         <div className="flex flex-wrap gap-2 mb-2">
           {isLoadingTags ? (
             <div className="w-full text-center text-mutedDark">Loading tags...</div>
+          ) : topTags.length === 0 ? (
+            <div className="w-full text-center text-mutedDark">No tags available</div>
           ) : (
-            (Array.isArray(topTags) ? topTags : []).map(({ tag, count }) => (
+            topTags.map(({ tag, count }) => (
               <button
                 key={tag}
                 onClick={() => onTagClick(selectedTag === tag ? null : tag)}
-                className={`px-3 py-3 mt-3 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
                   selectedTag === tag 
                     ? 'bg-primary text-white' 
                     : getTagColor(tag)

@@ -5,6 +5,18 @@ import { createClash } from '../controllers/clashController.js'; // <-- ADD THIS
 import authenticateUser from "../middleware/authMiddleware.js";
 import getStatusLabel from '../utils/statusLabel.js';
 
+// NOTE: Ensure the Clash model includes a properly defined `tags` field with default value and validation.
+// Example (in Clash.js):
+// tags: {
+//   type: [String],
+//   default: [],
+//   validate: {
+//     validator: tags => tags.every(tag => typeof tag === 'string' && tag.trim() !== ''),
+//     message: 'Each tag must be a non-empty string.'
+//   },
+//   index: true
+// }
+
 const router = express.Router();
 
 // Tüm Clash'leri getirme (tag filtreli)
@@ -58,6 +70,76 @@ router.get('/', async (req, res) => {
     res.json(clashes);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+});
+
+// Get top tags
+router.get('/top-tags', async (req, res) => {
+  console.log("GET /api/clashes/top-tags called");
+  console.log("Top tags route hit"); // Initial route hit log
+  try {
+    console.log("Starting top tags aggregation...");
+    
+    // First, let's check if we have any documents with tags
+    const docCount = await Clash.countDocuments({ tags: { $exists: true, $ne: [] } });
+    console.log("Documents with tags:", docCount);
+
+    const topTags = await Clash.aggregate([
+      { 
+        $match: { 
+          tags: { 
+            $exists: true, 
+            $ne: [], 
+            $type: "array" 
+          } 
+        } 
+      },
+      { $unwind: "$tags" },
+      { 
+        $group: { 
+          _id: "$tags", 
+          count: { $sum: 1 } 
+        } 
+      },
+      { $sort: { count: -1 } },
+      { $limit: 10 },
+      { 
+        $project: { 
+          tag: "$_id", 
+          count: 1, 
+          _id: 0 
+        } 
+      }
+    ]);
+
+    console.log("Aggregation result:", topTags);
+
+    if (!Array.isArray(topTags)) {
+      console.error("topTags is not an array:", topTags);
+      return res.status(500).json({ 
+        message: "Invalid topTags format",
+        error: "Aggregation result is not an array"
+      });
+    }
+
+    // Filter in JS to ensure valid tag objects
+    const filteredTags = topTags.filter(tag => 
+      tag && 
+      tag.tag && 
+      typeof tag.tag === "string" && 
+      typeof tag.count === "number"
+    );
+
+    console.log("Filtered tags:", filteredTags);
+    res.json(filteredTags);
+  } catch (err) {
+    console.error("Top Tags Aggregation Error:", err.message);
+    console.error("Stack Trace:", err.stack);
+    res.status(500).json({ 
+      message: "Error in top-tags route", 
+      error: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
@@ -206,31 +288,6 @@ router.get('/search', async (req, res) => {
 
     res.json(clashes);
   } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
-
-// Get top tags
-router.get('/top-tags', async (req, res) => {
-  try {
-    const topTags = await Clash.aggregate([
-      { $match: { tags: { $exists: true, $ne: [] } } },
-      { $unwind: "$tags" },
-      { $group: { _id: "$tags", count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 10 },
-      { $project: { tag: "$_id", count: 1, _id: 0 } }
-    ]);
-
-    // Defensive check: Ensure topTags is an array
-    if (!Array.isArray(topTags)) {
-      console.error("topTags is not an array:", topTags);
-      return res.status(500).json({ message: "Invalid topTags format" });
-    }
-
-    res.json(topTags);
-  } catch (err) {
-    console.error("Top Tags Aggregation Error:", err);
     res.status(500).json({ message: err.message });
   }
 });

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import NoResultsIllustration from '../assets/no-results-illustration.png';
 import ClashCard from "./ClashCard";
 import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
@@ -840,54 +841,6 @@ Return only a comma-separated list of concise tags. No explanations.
         </p>
       </div>
 
-      {/* Active filters summary */}
-      {(searchQuery || selectedTag) && (
-        <div className="px-4 py-3 bg-muted25/50 border-b border-muted">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-label text-mutedDark">
-              <span>Showing results for:</span>
-              <div className="flex flex-wrap gap-2">
-                {searchQuery && (
-                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
-                    "{searchQuery}"
-                    <button
-                      onClick={() => setSearchQuery("")}
-                      className="text-mutedDark hover:text-alert transition-colors"
-                      title="Clear search"
-                    >
-                      ✖
-                    </button>
-                  </span>
-                )}
-                {selectedTag && (
-                  <span className="group relative inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
-                    #{selectedTag}
-                    <button
-                      onClick={() => handleTagFilter(null)}
-                      className="text-mutedDark hover:text-alert transition-colors"
-                      title="Clear tag filter"
-                    >
-                      ✖
-                    </button>
-                    {tagCount !== null && (
-                      <span className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2 py-1 bg-secondary text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                        {tagCount} clash{tagCount !== 1 ? 'es' : ''} with this tag
-                      </span>
-                    )}
-                  </span>
-                )}
-              </div>
-            </div>
-            <button
-              onClick={handleShare}
-              className="inline-flex items-center gap-1 px-3 py-1 text-sm text-secondary hover:text-accent transition-colors"
-              title="Share this view"
-            >
-              <span>🔗</span> Share
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Share toast */}
       {showShareToast && (
@@ -1149,11 +1102,33 @@ Return only a comma-separated list of concise tags. No explanations.
 
       {/* Sort dropdown and options */}
       <div className="p-8 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
-        <h2 className="text-body text-secondary">Highlighted Clashes</h2>
+        <h2 className="text-body text-secondary flex items-center gap-2">
+          {searchQuery
+            ? <>
+                🔍 {filteredClashes.length} clash{filteredClashes.length !== 1 ? "es" : ""} found for
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted text-label">
+                  "{searchQuery}"
+                  <button
+                    onClick={() => window.location.href = "/"} // or use setSearchQuery("") if available
+                    className="text-mutedDark hover:text-alert transition-colors"
+                    title="Clear search"
+                  >
+                    ✖
+                  </button>
+                </span>
+              </>
+            : selectedTag
+            ? `🏷️ ${filteredClashes.length} clash${filteredClashes.length !== 1 ? "es" : ""} tagged with "${selectedTag}"`
+            : "🔥 Highlighted Clashes"}
+        </h2>
         <div className="relative" ref={sortMenuRef}>
           <button 
-            className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
-            onClick={toggleSortDropdown}
+            className={`flex items-center space-x-1 text-caption ${
+              searchQuery || selectedTag ? "text-mutedDark opacity-50 cursor-not-allowed" : "text-mutedDark hover:text-secondary"
+            }`}
+            onClick={searchQuery || selectedTag ? null : toggleSortDropdown}
+            disabled={searchQuery || selectedTag}
+            title={searchQuery || selectedTag ? "Clear your search to filter" : "Filter clashes"}
           >
             <span>Filter by:</span>
             <span className="font-medium text-secondary">
@@ -1194,12 +1169,40 @@ Return only a comma-separated list of concise tags. No explanations.
 
       {/* Clash list */}
       <div className="space-y-6 px-4 bg-bgashwhite">
-        {/* Search results count */}
-        {searchQuery && !isLoading && (
-          <div className="text-label text-mutedDark mb-4">
-            🔍 {filteredClashes.length} result{filteredClashes.length !== 1 ? 's' : ''} found for "{searchQuery}"
+        {/* Search results count and filter pills */}
+        {/*
+        {(searchQuery || selectedTag) && !isLoading && (
+          <div className="flex flex-wrap items-center justify-between gap-4 text-label text-mutedDark mb-4 px-4">
+            <div className="flex items-center flex-wrap gap-2">
+              {filteredClashes.length} clash{filteredClashes.length !== 1 ? 'es' : ''} found for
+              {searchQuery && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
+                  "{searchQuery}"
+                  <button
+                    onClick={() => setSearchQuery("")}
+                    className="text-mutedDark hover:text-alert transition-colors"
+                    title="Clear search"
+                  >
+                    ✖
+                  </button>
+                </span>
+              )}
+              {selectedTag && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white rounded-full text-secondary border border-muted">
+                  #{selectedTag}
+                  <button
+                    onClick={() => handleTagFilter(null)}
+                    className="text-mutedDark hover:text-alert transition-colors"
+                    title="Clear tag filter"
+                  >
+                    ✖
+                  </button>
+                </span>
+              )}
+            </div>
           </div>
         )}
+        */}
 
         {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
           visibleClashes.map((clash) => {
@@ -1232,32 +1235,28 @@ Return only a comma-separated list of concise tags. No explanations.
               ))}
             </div>
           ) : (
-            <div className="p-8 text-center">
+            <div className="p-8 text-center flex flex-col items-center">
+              <img
+                src={NoResultsIllustration}
+                alt="No results"
+                className="w-40 h-40 mb-4 opacity-80"
+              />
               <div className="text-label text-mutedDark mb-2">
                 {searchQuery ? (
                   <>
-                    No results found for "{searchQuery}"
+                    Hmm... we couldn't find any clash for <strong>"{searchQuery}"</strong>
                     {selectedTag && (
-                      <span> with tag "{selectedTag}"</span>
-                    )}
+                      <span> under the tag <strong>"{selectedTag}"</strong></span>
+                    )}. Maybe start one?
                   </>
                 ) : selectedTag ? (
-                  `No clashes found with tag "${selectedTag}"`
+                  <>
+                    Nothing here yet under the tag <strong>"{selectedTag}"</strong>. Be the first to start a clash!
+                  </>
                 ) : (
-                  "No clashes found. Create the first one!"
+                  "It’s a little quiet here. How about launching the very first clash?"
                 )}
               </div>
-              {(searchQuery || selectedTag) && (
-                <button
-                  onClick={() => {
-                    if (searchQuery) setSearchQuery("");
-                    if (selectedTag) handleTagFilter(null);
-                  }}
-                  className="text-accent hover:text-accent-dark transition-colors"
-                >
-                  Clear filters
-                </button>
-              )}
             </div>
           )
         )}
