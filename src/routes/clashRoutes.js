@@ -223,7 +223,7 @@ router.post('/:id/arguments', authenticateUser, async (req, res) => {
 // Reaksiyon ekleme
 router.post('/:id/react', authenticateUser, async (req, res) => {
   const { reactionType } = req.body;
-  const allowedReactions = ["nailed_it", "fair_point", "neutral", "really", "try_again"];
+  const allowedReactions = ["Nailed It", "Fair Point", "Can't Decide", "Really?", "Try Again"];
   if (!allowedReactions.includes(reactionType)) {
     return res.status(400).json({ message: "Invalid reactionType" });
   }
