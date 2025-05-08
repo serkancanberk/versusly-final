@@ -108,9 +108,14 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
             }}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
+            onDoubleClick={(e) => e.target.select()}
           />
-          <div className="absolute right-2 top-2 text-secondary">
-            🔍
+          <div className="absolute right-2 top-2 text-secondary cursor-pointer">
+            {searchQuery.length > 0 ? (
+              <span onClick={() => setSearchQuery("")}>✖</span>
+            ) : (
+              "🔍"
+            )}
           </div>
           
           {/* Recent searches dropdown */}

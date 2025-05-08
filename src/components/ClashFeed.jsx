@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
 import { sanitizeInput, formatGPTResponse, generatePromptFromForm } from "../utils/gptUtils.js";
 
-const ClashFeed = ({ selectedTag, searchQuery, user }) => {
+const ClashFeed = ({ selectedTag, searchQuery, user, forceOpenForm, onFormOpened }) => {
   // State değişkenleri
   // Rate limit for releasing clash
   const lastClashTimestampRef = useRef(0);
@@ -22,6 +22,7 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   const offsetRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
   const loaderRef = useRef(null);
+  const formRef = useRef(null);
   const CHUNK_SIZE = 5; // Number of items to load at once
   const isLoggedIn = Boolean(user);
   const [titleError, setTitleError] = useState("");
@@ -86,6 +87,32 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
 
   // State for share toast
   const [showShareToast, setShowShareToast] = useState(false);
+
+  // (searchQuery state removed; now using prop)
+  const [isVisible, setIsVisible] = useState(false);
+  const feedRef = useRef(null);
+
+  // Handle focus after search
+  useEffect(() => {
+    if (searchQuery && feedRef.current) {
+      // Small delay to ensure the mobile menu is closed
+      setTimeout(() => {
+        feedRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 350);
+    }
+  }, [searchQuery]);
+
+  // Handle forceOpenForm prop
+  useEffect(() => {
+    if (forceOpenForm) {
+      setShowDetailedForm(true);
+      // Small delay to ensure smooth transition
+      setTimeout(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth' });
+        onFormOpened();
+      }, 100);
+    }
+  }, [forceOpenForm, onFormOpened]);
 
   // Fetch clashes based on search query or tag
   const fetchClashes = async () => {
@@ -852,7 +879,7 @@ Return only a comma-separated list of concise tags. No explanations.
           </div>
         </div>
       )}
-      <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
+      <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]" ref={feedRef}>
       {/* Title and description above feed */}
       <div className="px-4 pt-20 pb-1 mb-1">
         <h1 className="text-subheading text-secondary flex items-center gap-2">
@@ -872,7 +899,7 @@ Return only a comma-separated list of concise tags. No explanations.
       )}
 
       {/* Input alanı */}
-      <div className="sticky top-0 z-10 px-4 py-6">
+      <div className="sticky top-0 z-10 px-4 py-6" ref={formRef}>
         {/* Basit Form */}
         {!showDetailedForm && (
           <div className="relative group">
@@ -952,6 +979,7 @@ Return only a comma-separated list of concise tags. No explanations.
                 onKeyPress={handleKeyPress}
                 maxLength={80}
                 minLength={10}
+                onDoubleClick={(e) => e.target.select()}
               />
                 {aiLoadingField === "title" ? (
                   <span className="absolute right-2 top-1/2 -translate-y-1/2 transform text-caption text-mutedDark animate-pulse flex items-center gap-1 whitespace-nowrap pr-1">
@@ -1033,6 +1061,7 @@ Return only a comma-separated list of concise tags. No explanations.
                   onChange={handleInputChange}
                   onKeyPress={handleKeyPress}
                   maxLength={250}
+                  onDoubleClick={(e) => e.target.select()}
                 ></textarea>
                 {aiLoadingField === "statement" ? (
                   <span className="absolute right-2 top-2 text-caption text-mutedDark animate-pulse">
@@ -1090,6 +1119,7 @@ Return only a comma-separated list of concise tags. No explanations.
                   onChange={handleTagInputChange}
                   onKeyDown={handleTagInputKeyDown}
                   maxLength={100}
+                  onDoubleClick={(e) => e.target.select()}
                 />
                 {aiLoadingField === "tags" ? (
                   <span className="absolute right-2 top-2 text-xs text-mutedDark animate-pulse">
@@ -1284,7 +1314,7 @@ Return only a comma-separated list of concise tags. No explanations.
                     Nothing here yet under the tag <strong>"{selectedTag}"</strong>. Be the first to start a clash!
                   </>
                 ) : (
-                  "It’s a little quiet here. How about launching the very first clash?"
+                  "It's a little quiet here. How about launching the very first clash?"
                 )}
               </div>
             </div>

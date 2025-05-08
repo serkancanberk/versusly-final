@@ -11,6 +11,32 @@ const MainFeed = ({ user, setUser }) => {
   const location = useLocation();
   const [selectedTag, setSelectedTag] = useState(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+  const [forceOpenForm, setForceOpenForm] = useState(false);
+
+  // Handle search events from both MobileMenu and RightSidebar
+  useEffect(() => {
+    const handleSearch = (event) => {
+      const query = event.detail.query;
+      setSearchQuery(query);
+    };
+
+    const handleOpenForm = () => {
+      setForceOpenForm(true);
+    };
+
+    window.addEventListener("searchTriggered", handleSearch);
+    window.addEventListener("openClashForm", handleOpenForm);
+    
+    return () => {
+      window.removeEventListener("searchTriggered", handleSearch);
+      window.removeEventListener("openClashForm", handleOpenForm);
+    };
+  }, []);
+
+  // Reset forceOpenForm after it's been handled
+  const handleFormOpened = () => {
+    setForceOpenForm(false);
+  };
 
   // Initialize tag from both hash and query params
   useEffect(() => {
@@ -83,7 +109,9 @@ const MainFeed = ({ user, setUser }) => {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             user={user} 
-            sortBy="newest" 
+            sortBy="newest"
+            forceOpenForm={forceOpenForm}
+            onFormOpened={handleFormOpened}
           />
         </div>
 
