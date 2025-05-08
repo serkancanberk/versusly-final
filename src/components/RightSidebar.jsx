@@ -57,25 +57,6 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
     }
   };
 
-  // Debounced search function
-  const debouncedSearch = debounce((query) => {
-    onSearch(query);
-    // Save to recent searches only if query has 3 or more characters
-    if (query.trim().length >= 3) {
-      setRecentSearches(prev => {
-        const newSearches = [query, ...prev.filter(s => s !== query)].slice(0, MAX_RECENT_SEARCHES);
-        localStorage.setItem("recentSearches", JSON.stringify(newSearches));
-        return newSearches;
-      });
-    }
-  }, 300);
-
-  const handleSearchChange = (e) => {
-    const query = e.target.value;
-    setSearchQuery(query);
-    debouncedSearch(query);
-  };
-
   const handleSearchFocus = () => {
     setShowRecentSearches(true);
   };
@@ -111,7 +92,20 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
             placeholder="Search clashes..."
             className="w-full py-2 px-4 text-sm text-secondary bg-muted25 rounded-md"
             value={searchQuery}
-            onChange={handleSearchChange}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onSearch(searchQuery);
+                if (searchQuery.trim().length >= 3) {
+                  setRecentSearches(prev => {
+                    const newSearches = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, MAX_RECENT_SEARCHES);
+                    localStorage.setItem("recentSearches", JSON.stringify(newSearches));
+                    return newSearches;
+                  });
+                }
+                setShowRecentSearches(false);
+              }
+            }}
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
           />
@@ -146,7 +140,7 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
         </div>
         
         {/* Dynamic Tags */}
-        <div className="flex flex-wrap gap-2 mb-2">
+        <div className="flex flex-wrap gap-3 mt-4 mb-2">
           {isLoadingTags ? (
             <div className="w-full text-center text-mutedDark">Loading tags...</div>
           ) : topTags.length === 0 ? (
@@ -156,29 +150,19 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
               <button
                 key={tag}
                 onClick={() => onTagClick(selectedTag === tag ? null : tag)}
-                className={`px-3 py-1.5 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
                   selectedTag === tag 
-                    ? 'bg-primary text-white' 
+                    ? 'bg-accent text-white' 
                     : getTagColor(tag)
                 }`}
                 title={`${count} clashes`}
               >
                 {tag}
+                {selectedTag === tag && <span className="ml-1">✖</span>}
               </button>
             ))
           )}
         </div>
-
-        {selectedTag && (
-          <div className="flex justify-end mb-6">
-            <button
-              onClick={() => onTagClick(null)}
-              className="px-3 py-1 rounded-full bg-alert text-bgwhite text-caption shadow-sm hover:opacity-90 transition"
-            >
-              ✖ Clear Filter
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Join the Clash */}

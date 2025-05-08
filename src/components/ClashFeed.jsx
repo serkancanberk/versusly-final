@@ -27,6 +27,8 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   const [titleError, setTitleError] = useState("");
   const [statementError, setStatementError] = useState("");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  // Show error banner for missing side selection
+  const [showSideError, setShowSideError] = useState(false);
   
   // Tag input state
   const [tags, setTags] = useState([]);
@@ -41,7 +43,8 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
 
     if (savedTitle) setTitleValue(savedTitle);
     if (savedStatement) setStatement(savedStatement);
-    if (savedSide) setSelectedSide(savedSide);
+    // Do not preselect side on form load to ensure user manually picks a side
+    // if (savedSide) setSelectedSide(savedSide);
     if (savedTags) {
       try {
         const parsedTags = JSON.parse(savedTags);
@@ -509,11 +512,11 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   const handleReleaseClash = async () => {
     if (!isLoggedIn) return;
 
-    setTitleError("");
-    setStatementError("");
-
+    // Strict top-down validation hierarchy
+    // 1. Title empty check
     if (!titleValue.trim()) {
       setTitleError("Please enter a title for your clash!");
+      setTimeout(() => setTitleError(""), 3000);
       // Highlight the invalid title input
       const titleInput = document.getElementById("title-vs-input");
       if (titleInput) {
@@ -525,23 +528,10 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
       return;
     }
 
-    // Enhanced statement validation
-    if (!statement.trim()) {
-      setStatementError("Please add your bold statement!");
-      // Highlight the invalid statement input
-      const statementInput = document.getElementById("statement-input");
-      if (statementInput) {
-        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
-        setTimeout(() => {
-          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
-        }, 1000);
-      }
-      return;
-    }
-
-    // ---- Side selection check ----
+    // 2. Side selection check
     if (!selectedSide) {
-      alert("Please pick a side for your clash!");
+      setShowSideError(true);
+      setTimeout(() => setShowSideError(false), 3000);
       const sideButtons = document.querySelectorAll(".pick-your-side-button");
       sideButtons.forEach(button => {
         button.classList.add("ring-2", "ring-accent", "animate-pulse");
@@ -551,11 +541,11 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
       });
       return;
     }
-    // ---- End side selection check ----
 
-    // Check statement length
-    if (statement.trim().length < 25) {
-      setStatementError("Your statement is too short. Please write at least 25 characters.");
+    // 3. Statement empty check
+    if (!statement.trim()) {
+      setStatementError("Please add your bold statement!");
+      setTimeout(() => setStatementError(""), 3000);
       // Highlight the invalid statement input
       const statementInput = document.getElementById("statement-input");
       if (statementInput) {
@@ -566,6 +556,25 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
       }
       return;
     }
+
+    // 4. Statement length check
+    if (statement.trim().length < 25) {
+      setStatementError("Your statement is too short. Please write at least 25 characters.");
+      setTimeout(() => setStatementError(""), 3000);
+      // Highlight the invalid statement input
+      const statementInput = document.getElementById("statement-input");
+      if (statementInput) {
+        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
+        setTimeout(() => {
+          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
+        }, 1000);
+      }
+      return;
+    }
+
+    // Clear previous errors on valid
+    setTitleError("");
+    setStatementError("");
 
     // Rate limit: prevent posting more than once per 60 seconds
     const now = Date.now();
@@ -916,7 +925,9 @@ Return only a comma-separated list of concise tags. No explanations.
 
             {/* VS başlığı */}
             <div className="mb-4">
-              <label htmlFor="title-vs-input" className="block text-caption text-mutedDark mb-1">Title of VS</label>
+              <label htmlFor="title-vs-input" className={`block text-caption mb-1 transition-opacity duration-300 ${titleError ? 'text-alert animate-pulse' : 'text-mutedDark'}`}>
+                {titleError ? "🎯 Let's name your epic clash first!" : "Title of VS"}
+              </label>
               <div className="relative">
               <input
                 id="title-vs-input"
@@ -955,7 +966,9 @@ Return only a comma-separated list of concise tags. No explanations.
 
             {/* Side selector buttons */}
             <div className="mb-4">
-              <label className="block text-caption text-mutedDark mb-1">Pick your side</label>
+              <label className={`block text-caption mb-1 transition-opacity duration-300 ${showSideError ? 'text-alert animate-pulse' : 'text-mutedDark'}`}>
+                {showSideError ? "⚔️ Choose your champion!" : "Pick your side"}
+              </label>
             <div className="flex space-x-3">
               <button
                 onClick={() => handleSideChange("A")}
@@ -990,8 +1003,8 @@ Return only a comma-separated list of concise tags. No explanations.
 
             {/* Statement input */}
             <div className="mb-4">
-              <label htmlFor="statement-input" className="block text-caption text-mutedDark mb-1">
-                Statement
+              <label htmlFor="statement-input" className={`block text-caption mb-1 transition-opacity duration-300 ${statementError ? 'text-alert animate-pulse' : 'text-mutedDark'}`}>
+                {statementError ? "💣 Make your bold claim loud and clear!" : "Statement"}
               </label>
               <div className="relative">
                 <textarea
