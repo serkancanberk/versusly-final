@@ -1,14 +1,16 @@
 // src/pages/MainFeed.jsx
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useLocation } from 'react-router-dom';
+import { useSearchParams, useLocation, useParams } from 'react-router-dom';
 import NavigationSidebar from '../components/NavigationSidebar';
 import ClashFeed from '../components/ClashFeed';
+import ClashDetails from '../components/ClashDetails';
 import RightSidebar from '../components/RightSidebar';
 import Header from '../components/Header';
 
 const MainFeed = ({ user, setUser }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const { clashId } = useParams();
   const [selectedTag, setSelectedTag] = useState(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
   const [forceOpenForm, setForceOpenForm] = useState(false);
@@ -104,15 +106,19 @@ const MainFeed = ({ user, setUser }) => {
 
         {/* Center Feed - Scrollable */}
         <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
-          <ClashFeed 
-            selectedTag={selectedTag} 
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            user={user} 
-            sortBy="newest"
-            forceOpenForm={forceOpenForm}
-            onFormOpened={handleFormOpened}
-          />
+          {clashId ? (
+            <ClashDetails clashId={clashId} user={user} />
+          ) : (
+            <ClashFeed 
+              selectedTag={selectedTag} 
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              user={user} 
+              sortBy="newest"
+              forceOpenForm={forceOpenForm}
+              onFormOpened={handleFormOpened}
+            />
+          )}
         </div>
 
         {/* Right Sidebar - Hidden on mobile */}

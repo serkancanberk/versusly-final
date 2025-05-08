@@ -1269,6 +1269,7 @@ Return only a comma-separated list of concise tags. No explanations.
             return clash && clash._id ? (
               <div key={clash._id} className="mb-10 pb-6">
                 <ClashCard
+                  _id={clash._id}
                   vs_title={clash.vs_title}
                   vs_statement={clash.vs_statement}
                   argument={clash.vs_argument || (clash.clashArguments?.[0]?.text || "")}

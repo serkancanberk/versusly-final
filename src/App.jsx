@@ -77,6 +77,7 @@ function App() {
         {console.log("🧭 Inside Routes, rendering path:", window.location.pathname)}
         <Routes>
           <Route path="/" element={<MainFeed user={user} setUser={setUser} />} />
+          <Route path="/clash/:clashId" element={<MainFeed user={user} setUser={setUser} />} />
         </Routes>
       </Router>
     </GoogleOAuthProvider>

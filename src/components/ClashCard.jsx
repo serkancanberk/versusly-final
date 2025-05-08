@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactionPanel from "./ReactionPanel";
 import { formatDistanceToNow } from "date-fns";
+import { Link } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
 
 export default function ClashCard({ 
+  _id,
   vs_title, 
   vs_statement, 
   tags = [], 
@@ -11,7 +14,7 @@ export default function ClashCard({
   expires_at, 
   createdAt, 
   creator, 
-  user 
+  user
 }) {
   const isLoggedIn = Boolean(user);
   const safeTitle = vs_title || "Untitled Clash";
@@ -376,33 +379,15 @@ export default function ClashCard({
       <div className="px-4 pt-0 pb-4 space-y-2">
         <div className="flex justify-between gap-2">
           {/* React Button */}
-          <div className="flex-1 relative">
-            <div className="relative group w-full">
-              {isLoggedIn ? (
-                <button
-                className={`w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4 ${
-                    selectedReaction ? 'bg-muted25' : ''
-                  }`}
-                  onMouseEnter={handleReactButtonHover}
-                  onMouseLeave={handleButtonMouseLeave}
-                >
-                  <span>{selectedReaction ? selectedReaction.emoji : "👊"}</span>
-                  <span>{selectedReaction ? selectedReaction.label : `React (${reactionCount})`}</span>
-                </button>
-              ) : (
-                <div className="relative group">
-                  <button
-                    className="w-full h-full flex items-center justify-center gap-1 text-caption text-secondary opacity-50 cursor-not-allowed py-3"                    disabled
-                  >
-                    <span>👊</span>
-                    <span>{`React (${reactionCount})`}</span>
-                  </button>
-                  <div className="absolute bottom-full mb-1 left-0 bg-secondary text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                    Sign in to react
-                  </div>
-                </div>
-              )}
-            </div>
+          <div className="flex-1 relative" ref={menuRefs.current.react}>
+            <ReactionPanel
+              user={user}
+              reactions={reactions}
+              selectedReaction={selectedReaction}
+              onSelect={handleReactionSelect}
+              onClose={() => setActiveMenu(null)}
+              isGuest={!user || !user._id}
+            />
           </div>
 
           {/* Arguments Button */}
@@ -457,38 +442,18 @@ export default function ClashCard({
         {/* Check This CTA */}
         <div className="w-full">
           <div className="relative group w-full">
-            <button
-              className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75"
-              // removed disabled={!isLoggedIn} so always enabled
-            >
-              Jump into the fire 🔥
-            </button>
-            {/* Tooltip removed from here */}
+            {_id && (
+              <Link
+                to={`/clash/${_id}`}
+                className="w-full px-4 py-2 bg-primary text-label text-secondary border-b-4 border-primary rounded-lg hover:shadow-md hover:bg-opacity-75 block text-center"
+              >
+                Jump into the fire 🔥
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
-      {/* React Menu */}
-      {activeMenu === "react" && (
-        <div
-          ref={menuRefs.current.react}
-          className="absolute left-4 bottom-28 bg-white rounded-lg shadow-xl p-3 z-30 grid grid-cols-5 gap-2 animate-fadeIn"
-        >
-          {safeReactions.map((reaction, index) => (
-            <button
-              key={index}
-              className={`flex flex-col items-center justify-center p-2 rounded-md transition-colors ${
-                selectedReaction?.label === reaction.label ? 'bg-muted25' : 'hover:bg-muted25'
-              } ${!isLoggedIn ? 'opacity-50 cursor-not-allowed' : ''}`}
-              onClick={() => isLoggedIn && handleReactionSelect(reaction)}
-              disabled={!isLoggedIn}
-            >
-              <span className="text-2xl">{reaction.emoji}</span>
-              <span className="text-xs text-center mt-1">{reaction.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
