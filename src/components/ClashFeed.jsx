@@ -26,6 +26,7 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   const isLoggedIn = Boolean(user);
   const [titleError, setTitleError] = useState("");
   const [statementError, setStatementError] = useState("");
+  const [statementInfoMessage, setStatementInfoMessage] = useState("");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   // Show error banner for missing side selection
   const [showSideError, setShowSideError] = useState(false);
@@ -347,6 +348,12 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   const handleTitleChange = (event) => {
     const val = event.target.value;
     setTitleValue(val);
+    // If statement is not empty, reset it and show playful info
+    if (statement.trim()) {
+      setStatement("");
+      setStatementInfoMessage("🧹 New title, new vibe. Statement reset!");
+      setTimeout(() => setStatementInfoMessage(""), 3000);
+    }
     updateSideTitles(val);
   };
 
@@ -383,6 +390,12 @@ const ClashFeed = ({ selectedTag, searchQuery, user }) => {
   // Side seçimi değiştiğinde çalışacak fonksiyon
   const handleSideChange = (side) => {
     setSelectedSide(side);
+    // If statement is not empty, reset it and show playful info
+    if (statement.trim()) {
+      setStatement("");
+      setStatementInfoMessage("🌀 You switched sides. Statement cleared!");
+      setTimeout(() => setStatementInfoMessage(""), 3000);
+    }
   };
 
   // Kullanıcının girdisine göre Side A ve Side B başlıklarını güncelleme
@@ -1004,7 +1017,11 @@ Return only a comma-separated list of concise tags. No explanations.
             {/* Statement input */}
             <div className="mb-4">
               <label htmlFor="statement-input" className={`block text-caption mb-1 transition-opacity duration-300 ${statementError ? 'text-alert animate-pulse' : 'text-mutedDark'}`}>
-                {statementError ? "💣 Make your bold claim loud and clear!" : "Statement"}
+                {statementError
+                  ? "💣 Make your bold claim loud and clear!"
+                  : statementInfoMessage
+                    ? statementInfoMessage
+                    : "Statement"}
               </label>
               <div className="relative">
                 <textarea
