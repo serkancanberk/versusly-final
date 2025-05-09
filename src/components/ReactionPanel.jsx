@@ -1,3 +1,4 @@
+const fetchedClashCache = new Set();
 import React, { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
 
@@ -34,52 +35,57 @@ export default function ReactionPanel({
   const mapTotalsToReactions = (totals) => {
     const mapped = {};
     reactionTypes.forEach(type => {
-      // support both label-based and value-based keys from the backend
       const count = totals?.[type.label] ?? totals?.[type.value] ?? 0;
       mapped[type.label] = count;
     });
     return mapped;
   };
 
-  // Only use initialReactions on first render
+  // Initialize state from initialReactions if provided
   useEffect(() => {
-    let didCancel = false;
-    // Initialize from initialReactions if provided
     if (initialReactions && Object.keys(initialReactions).length > 0) {
       const mappedInit = mapTotalsToReactions(initialReactions);
       setReactions(mappedInit);
       setTotal(calculateTotal(mappedInit));
     }
+  }, [initialReactions]);
+
+  // Fetch reactions and user's reaction
+  useEffect(() => {
+    if (!isLoggedIn || fetchedClashCache.has(clashId)) return;
+    
     const fetchReactions = async () => {
       const now = Date.now();
       if (now - lastFetchedAt.current < 30000) return;
       lastFetchedAt.current = now;
+      
       try {
         const response = await fetch(`/api/reactions/${clashId}`, {
           credentials: 'include'
         });
         if (!response.ok) throw new Error('Failed to fetch reactions');
+        
         const data = await response.json();
         const mapped = mapTotalsToReactions(data.totals);
-        if (!didCancel) {
-          setReactions(mapped);
-          setTotal(calculateTotal(mapped));
-          if (data.userReaction) {
-            const userReaction = reactionTypes.find(r => r.value === data.userReaction);
-            setSelectedReaction(userReaction || null);
-          } else {
-            setSelectedReaction(null);
-          }
+        
+        setReactions(mapped);
+        setTotal(calculateTotal(mapped));
+        
+        if (data.userReaction) {
+          const userReaction = reactionTypes.find(r => r.value === data.userReaction);
+          setSelectedReaction(userReaction || null);
+        } else {
+          setSelectedReaction(null);
         }
+        
+        fetchedClashCache.add(clashId);
       } catch (error) {
-        if (!didCancel) {
-          toast.error('Reaksiyonlar yüklenirken hata oluştu');
-        }
+        toast.error('Reaksiyonlar yüklenirken hata oluştu');
       }
     };
+
     fetchReactions();
-    return () => { didCancel = true; };
-  }, [clashId, initialReactions]);
+  }, [clashId, isLoggedIn]);
 
   // Update menu position when active state changes
   useEffect(() => {
