@@ -394,7 +394,7 @@ export default function ClashCard({
             <ReactionPanel
               clashId={_id}
               user={user}
-              reactions={reactions}
+              initialReactions={reactions || {}}
               selectedReaction={selectedReaction || {
                 emoji: "👊",
                 label: "React",

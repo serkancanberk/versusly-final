@@ -61,18 +61,15 @@ app.use(cookieParser());
 
 app.use(express.json());
 
-// Request logging middleware
-app.use((req, res, next) => {
-  console.log('----------------------------------------');
-  console.log('New Request Received:');
-  console.log('Time:', new Date().toISOString());
-  console.log('Method:', req.method);
-  console.log('URL:', req.url);
-  console.log('Headers:', JSON.stringify(req.headers, null, 2));
-  console.log('Body:', JSON.stringify(req.body, null, 2));
-  console.log('----------------------------------------');
-  next();
-});
+// Request logging middleware (only in development)
+const isDev = process.env.NODE_ENV !== 'production';
+
+if (isDev) {
+  app.use((req, res, next) => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+    next();
+  });
+}
 
 // Test route
 app.get('/test', (req, res) => {
@@ -87,7 +84,9 @@ app.use('/api/reactions', authenticateUser, reactionRoutes);
 
 // 404 handler
 app.use((req, res) => {
-  console.log('404 - Route not found:', req.url);
+  if (isDev) {
+    console.log('404 - Route not found:', req.url);
+  }
   res.status(404).json({ message: 'Route not found' });
 });
 
