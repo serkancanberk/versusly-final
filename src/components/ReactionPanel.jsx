@@ -4,7 +4,6 @@ import { toast } from "react-hot-toast";
 export default function ReactionPanel({
   clashId,
   user,
-  setSelectedReaction: setParentSelectedReaction,
   initialReactions
 }) {
   const isLoggedIn = Boolean(user && user._id);
@@ -31,11 +30,13 @@ export default function ReactionPanel({
     return reactionTypes.reduce((sum, type) => sum + (reactionData[type.label] || 0), 0);
   };
 
-  // Map backend totals by label
+  // Map backend totals by label or value
   const mapTotalsToReactions = (totals) => {
     const mapped = {};
     reactionTypes.forEach(type => {
-      mapped[type.label] = totals?.[type.label] || 0;
+      // support both label-based and value-based keys from the backend
+      const count = totals?.[type.label] ?? totals?.[type.value] ?? 0;
+      mapped[type.label] = count;
     });
     return mapped;
   };
@@ -66,10 +67,8 @@ export default function ReactionPanel({
           if (data.userReaction) {
             const userReaction = reactionTypes.find(r => r.value === data.userReaction);
             setSelectedReaction(userReaction || null);
-            setParentSelectedReaction?.(userReaction || null);
           } else {
             setSelectedReaction(null);
-            setParentSelectedReaction?.(null);
           }
         }
       } catch (error) {
@@ -80,7 +79,7 @@ export default function ReactionPanel({
     };
     fetchReactions();
     return () => { didCancel = true; };
-  }, [clashId, setParentSelectedReaction, initialReactions]);
+  }, [clashId, initialReactions]);
 
   // Update menu position when active state changes
   useEffect(() => {
@@ -130,6 +129,7 @@ export default function ReactionPanel({
     try {
       setIsLoading(true);
       const isRemoving = selectedReaction?.label === reaction.label;
+      console.log('>>> [ReactionPanel] Sending reaction:', { clashId, reaction: isRemoving ? null : reaction.value });
       const response = await fetch('/api/reactions', {
         method: isRemoving ? 'DELETE' : 'POST',
         headers: {
@@ -143,6 +143,7 @@ export default function ReactionPanel({
       });
       if (!response.ok) throw new Error('Failed to update reaction');
       const data = await response.json();
+      console.log('>>> [ReactionPanel] POST response data:', data);
       // Always map all reaction types robustly
       const mapped = mapTotalsToReactions(data.totals);
       setReactions(mapped);
@@ -150,8 +151,13 @@ export default function ReactionPanel({
       const newSelection = data.userReaction
         ? reactionTypes.find(r => r.value === data.userReaction)
         : null;
-      setSelectedReaction(newSelection);
-      setParentSelectedReaction?.(newSelection);
+
+      // reset if user removed their reaction
+      if (isRemoving) {
+        setSelectedReaction(null);
+      } else {
+        setSelectedReaction(newSelection);
+      }
       setActive(false);
     } catch (error) {
       console.error('Error updating reaction:', error);
@@ -190,12 +196,16 @@ export default function ReactionPanel({
             selectedReaction ? "bg-muted25" : ""
           } ${isLoading ? "opacity-50 cursor-wait" : ""}`}
           disabled={isLoading}
+          onClick={() => setActive(prev => !prev)}
+          aria-label={selectedReaction ? `Selected reaction: ${selectedReaction.label}` : `React button. Total reactions: ${total}`}
         >
           <span className="flex items-center gap-1">
             {selectedReaction ? (
               <>
                 <span>{selectedReaction.emoji}</span>
-                <span className="text-xs">{selectedReaction.label}</span>
+                <span className="text-xs">
+                  {selectedReaction.label} ({reactions[selectedReaction.label] || 0})
+                </span>
               </>
             ) : (
               <>
@@ -215,6 +225,8 @@ export default function ReactionPanel({
           ref={menuRef}
           style={menuStyle}
           className="absolute bottom-14 bg-white rounded-xl shadow-xl p-3 z-30 flex gap-4"
+          role="menu"
+          aria-label="Reaction options"
         >
           {reactionTypes.map((reaction, index) => (
             <button
@@ -224,6 +236,9 @@ export default function ReactionPanel({
               } ${(!isLoggedIn || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={() => handleSelect(reaction)}
               disabled={!isLoggedIn || isLoading}
+              role="menuitem"
+              aria-pressed={selectedReaction?.label === reaction.label}
+              aria-label={`${reaction.label}, ${reactions[reaction.label] || 0} votes`}
             >
               <div className="flex flex-col items-center">
                 <span className="text-xl">{reaction.emoji}</span>

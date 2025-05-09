@@ -69,14 +69,52 @@ export const postReaction = async (req, res) => {
 
   try {
     const existing = await Reaction.findOne({ clashId, userId });
+    let newReaction = null;
     if (existing) {
       existing.reaction = reaction;
       await existing.save();
-      return res.json({ message: 'Reaction updated', reaction: existing });
+    } else {
+      newReaction = await Reaction.create({ clashId, reaction, userId });
     }
 
-    const newReaction = await Reaction.create({ clashId, reaction, userId });
-    res.status(201).json({ message: 'Reaction added', reaction: newReaction });
+    // Shared logic: recompute totals and userReaction
+    const updatedReactions = await Reaction.find({ clashId });
+
+    const validReactions = ['nailed_it', 'fair_point', 'neutral', 'really', 'try_again'];
+    const initialTotals = validReactions.reduce((acc, key) => {
+      acc[key] = 0;
+      return acc;
+    }, {});
+
+    const rawTotals = updatedReactions.reduce((acc, r) => {
+      acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+      return acc;
+    }, {});
+
+    const totals = { ...initialTotals, ...rawTotals };
+    const labelMap = {
+      nailed_it: 'Nailed It',
+      fair_point: 'Fair Point',
+      neutral: "Can't Decide",
+      really: 'Really?',
+      try_again: 'Try Again',
+    };
+
+    const formattedTotals = Object.entries(totals).reduce((acc, [key, value]) => {
+      const label = labelMap[key] || key;
+      acc[label] = value;
+      return acc;
+    }, {});
+    console.log(">>> [POST] updatedReactions:", updatedReactions);
+    console.log(">>> [POST] rawTotals:", rawTotals);
+    console.log(">>> [POST] formattedTotals:", formattedTotals);
+
+    return res.status(200).json({
+      message: existing ? 'Reaction updated' : 'Reaction added',
+      reaction: existing || newReaction,
+      totals: formattedTotals,
+      userReaction: reaction
+    });
   } catch (err) {
     console.error('POST /api/reactions failed:', err.message);
     res.status(500).json({ message: 'Failed to post reaction' });
@@ -85,12 +123,40 @@ export const postReaction = async (req, res) => {
 
 // DELETE /api/reactions
 export const deleteReaction = async (req, res) => {
-  const { clashId } = req.body;
-  const userId = req.user?._id;
-
   try {
-    await Reaction.findOneAndDelete({ clashId, userId });
-    res.json({ message: 'Reaction deleted' });
+    const { clashId } = req.body;
+    const userId = req.user?._id;
+    // Delete the reaction record
+    await Reaction.deleteOne({ clashId, userId });
+    // Recompute live totals
+    const updatedReactions = await Reaction.find({ clashId });
+    const validReactions = ['nailed_it', 'fair_point', 'neutral', 'really', 'try_again'];
+    const initialTotals = validReactions.reduce((acc, key) => {
+      acc[key] = 0;
+      return acc;
+    }, {});
+    const rawTotals = updatedReactions.reduce((acc, r) => {
+      acc[r.reaction] = (acc[r.reaction] || 0) + 1;
+      return acc;
+    }, {});
+    const totals = { ...initialTotals, ...rawTotals };
+    const labelMap = {
+      nailed_it: 'Nailed It',
+      fair_point: 'Fair Point',
+      neutral: "Can't Decide",
+      really: 'Really?',
+      try_again: 'Try Again',
+    };
+    const formattedTotals = Object.entries(totals).reduce((acc, [key, value]) => {
+      const label = labelMap[key] || key;
+      acc[label] = value;
+      return acc;
+    }, {});
+    return res.status(200).json({
+      message: 'Reaction deleted',
+      totals: formattedTotals,
+      userReaction: null
+    });
   } catch (err) {
     console.error('DELETE /api/reactions failed:', err.message);
     res.status(500).json({ message: 'Failed to delete reaction' });

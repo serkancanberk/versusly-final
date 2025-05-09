@@ -21,6 +21,8 @@ const ReactionSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+ReactionSchema.index({ clashId: 1 });
+
 const Reaction = mongoose.model('Reaction', ReactionSchema);
 
 export default Reaction;

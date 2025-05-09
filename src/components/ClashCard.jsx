@@ -33,7 +33,7 @@ export default function ClashCard({
     { emoji: "🗑️", label: "Try Again", description: "Not convinced" }
   ];
   
-  const safeReactions = Array.isArray(reactions) && reactions.length > 0 ? reactions : mockReactions;
+  const safeReactions = reactions && typeof reactions === 'object' && Object.keys(reactions).length > 0 ? reactions : {};
   
   // Calculate total reaction count
   const reactionCount = reactions && typeof reactions === "object"
@@ -372,9 +372,9 @@ export default function ClashCard({
         )}
 
         {/* Reaction counts */}
-        {reactions && typeof reactions === "object" && Object.keys(reactions).length > 0 && (
+        {Object.keys(safeReactions).length > 0 && (
           <div className="flex flex-wrap gap-3 items-center mt-2">
-            {Object.entries(reactions).map(([label, count]) => (
+            {Object.entries(safeReactions).map(([label, count]) => (
               <div key={label} className="flex items-center gap-1 px-2 py-1 bg-muted25 rounded-full text-caption text-secondary">
                 <span>{label}</span>
                 <span className="font-bold">{count}</span>
@@ -394,14 +394,7 @@ export default function ClashCard({
             <ReactionPanel
               clashId={_id}
               user={user}
-              initialReactions={reactions || {}}
-              selectedReaction={selectedReaction || {
-                emoji: "👊",
-                label: "React",
-                description: ""
-              }}
-              setSelectedReaction={setSelectedReaction}
-              onSelect={handleReactionSelect}
+              initialReactions={safeReactions}
               onClose={() => setActiveMenu(null)}
               isGuest={!user || !user._id}
             />
