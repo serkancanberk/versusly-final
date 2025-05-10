@@ -140,26 +140,22 @@ router.delete('/:id', async (req, res) => {
 });
 
 // Yeni bir argüman ekleme (güncel versiyon)
-router.post('/:id/arguments', authenticateUser, async (req, res) => {
-  const { text, side } = req.body;
-  const user = req.user._id;
-
-  if (!text || !side) {
-    return res.status(400).json({ message: "Both text and side are required" });
-  }
-
+router.post('/:id/Clash_arguments', authenticateUser, async (req, res) => {
   try {
+    const { text, side } = req.body;
     const clash = await Clash.findById(req.params.id);
+    
     if (!clash) {
       return res.status(404).json({ message: "Clash not found" });
     }
 
-    clash.arguments.push({ user, text, side, createdAt: new Date() });
+    const user = req.user._id;
+    clash.Clash_arguments.push({ user, text, side, createdAt: new Date() });
     await clash.save();
 
-    res.status(200).json({ message: "Argument added", arguments: clash.arguments });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(200).json({ message: "Argument added", Clash_arguments: clash.Clash_arguments });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
   }
 });
 

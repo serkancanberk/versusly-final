@@ -37,7 +37,7 @@ function App() {
         const data = await res.json();
         setUser(data);
         setLoading(false);
-        console.log("Fetched user:", data);
+        console.log("Fetched user:", data?.name || "No name");
       } catch (err) {
         console.error("Failed to fetch user:", err);
         setLoading(false);

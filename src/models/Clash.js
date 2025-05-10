@@ -4,10 +4,27 @@ const clashSchema = new mongoose.Schema({
   vs_title: String,
   vs_statement: String,
   vs_argument: String,
-  arguments: [
+  Clash_arguments: [
     {
-      text: String,
-    },
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      text: {
+        type: String,
+        required: true
+      },
+      side: {
+        type: String,
+        enum: ['for', 'against'],
+        required: true
+      },
+      createdAt: {
+        type: Date,
+        default: Date.now
+      }
+    }
   ],
   side: String,
   tags: {

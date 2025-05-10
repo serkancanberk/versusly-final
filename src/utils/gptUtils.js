@@ -28,7 +28,7 @@ export const generatePromptFromForm = (title, statement, tags = []) => {
 };
 
 // Generate a critique prompt based on a full VS content
-export const generateCritiquePrompt = ({ title, statement, arguments: args = [] }) => {
+export const generateCritiquePrompt = ({ title, statement, Clash_arguments: args = [] }) => {
   return `
     Based on the following debate titled "${title}", please analyze the arguments and provide a detailed critique in markdown format.
 
@@ -36,8 +36,8 @@ export const generateCritiquePrompt = ({ title, statement, arguments: args = [] 
     ${statement}
 
     Arguments:
-    ${args.map((arg, i) => `Argument ${i + 1}: ${arg}`).join('\n')}
+    ${args.map(arg => `- ${arg.text} (${arg.side})`).join('\n')}
 
-    Focus on the strength, clarity, and relevance of each argument, and suggest improvements where necessary.
+    Please provide a detailed analysis of the arguments presented, their strengths and weaknesses, and any logical fallacies or areas for improvement.
   `;
 };

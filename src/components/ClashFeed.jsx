@@ -150,8 +150,7 @@ const ClashFeed = ({ selectedTag, searchQuery, user, forceOpenForm, onFormOpened
       }
 
       const transformedData = data.map(item => {
-        const clashArguments = Array.isArray(item.arguments) ? item.arguments : [];
-        const argumentCount = clashArguments.length;
+        const argumentCount = Array.isArray(item.Clash_arguments) ? item.Clash_arguments.length : 0;
 
         return {
           ...item,
@@ -159,7 +158,7 @@ const ClashFeed = ({ selectedTag, searchQuery, user, forceOpenForm, onFormOpened
           vs_title: item.vs_title || item.title || "",
           vs_statement: item.vs_statement || item.statement || "",
           vs_argument: item.vs_argument || item.argument || "",
-          clashArguments,
+          Clash_arguments: item.Clash_arguments || [],
           argumentCount,
           creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
           statusLabel: getStatusLabel({ 
@@ -1272,8 +1271,8 @@ Return only a comma-separated list of concise tags. No explanations.
                   _id={clash._id}
                   vs_title={clash.vs_title}
                   vs_statement={clash.vs_statement}
-                  argument={clash.vs_argument || (clash.clashArguments?.[0]?.text || "")}
-                  clashArguments={clash.clashArguments || []}
+                  argument={clash.vs_argument || (clash.Clash_arguments?.[0]?.text || "")}
+                  Clash_arguments={clash.Clash_arguments || []}
                   reactions={clash.reactions}
                   tags={clash.tags}
                   expires_at={clash.expires_at}

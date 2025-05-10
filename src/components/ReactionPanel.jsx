@@ -198,8 +198,8 @@ export default function ReactionPanel({
     >
       <div className="w-full">
         <button
-          className={`w-full h-full flex items-center justify-center text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4 ${
-            selectedReaction ? "bg-muted25" : ""
+          className={`w-full h-full flex items-center justify-center text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform rounded-md py-4 ${
+            selectedReaction ? "bg-accent/25" : "hover:bg-muted25"
           } ${isLoading ? "opacity-50 cursor-wait" : ""}`}
           disabled={isLoading}
           onClick={() => setActive(prev => !prev)}
@@ -207,12 +207,12 @@ export default function ReactionPanel({
         >
           <span className="flex items-center gap-1">
             {selectedReaction ? (
-              <>
+              <span title="You reacted with this" className="flex items-center gap-1 animate-[pulse_2s_ease-in-out_infinite] text-accent font-semibold">
                 <span>{selectedReaction.emoji}</span>
                 <span className="text-xs">
                   {selectedReaction.label} ({reactions[selectedReaction.label] || 0})
                 </span>
-              </>
+              </span>
             ) : (
               <>
                 <span>👊</span>
@@ -238,7 +238,7 @@ export default function ReactionPanel({
             <button
               key={index}
               className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-md transition-colors ${
-                selectedReaction?.label === reaction.label ? "bg-muted25" : "hover:bg-muted25"
+                selectedReaction?.label === reaction.label ? "bg-accent/10 shadow-sm" : "hover:bg-muted25"
               } ${(!isLoggedIn || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={() => handleSelect(reaction)}
               disabled={!isLoggedIn || isLoading}

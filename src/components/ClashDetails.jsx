@@ -52,7 +52,7 @@ export default function ClashDetails({ clashId }) {
     }
 
     try {
-      const response = await fetch(`/api/clashes/${clashId}/arguments`, {
+      const response = await fetch(`/api/clashes/${clashId}/Clash_arguments`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -72,7 +72,7 @@ export default function ClashDetails({ clashId }) {
       // Optimistically update local clash state
       setClash((prev) => ({
         ...prev,
-        arguments: [newArgument, ...(prev.arguments || [])],
+        Clash_arguments: [newArgument, ...(prev.Clash_arguments || [])],
       }));
 
       setArgumentText("");
@@ -222,34 +222,24 @@ export default function ClashDetails({ clashId }) {
               </button>
             </div>
 
-            {/* Arguments Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+            {/* Clash Arguments Section */}
+            <div className="mt-8">
               <h2 className="text-xl font-semibold mb-4">Arguments</h2>
-              {clash.arguments.length > 0 ? (
+              {clash.Clash_arguments.length > 0 ? (
                 <div className="space-y-4">
-                  {clash.arguments.map((argument) => (
-                    <div
-                      key={argument.id}
-                      className="border rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center space-x-2">
-                          <FaUser className="text-gray-500" />
-                          <span className="font-medium">{argument.author}</span>
-                        </div>
-                        <span className="text-sm text-gray-500">{argument.timestamp}</span>
+                  {clash.Clash_arguments.map((argument) => (
+                    <div key={argument._id} className="bg-white p-4 rounded-lg shadow">
+                      <p className="text-gray-800">{argument.text}</p>
+                      <div className="mt-2 text-sm text-gray-500">
+                        <span>{argument.side === 'for' ? 'For' : 'Against'}</span>
+                        <span className="mx-2">•</span>
+                        <span>{new Date(argument.createdAt).toLocaleDateString()}</span>
                       </div>
-                      <p className="text-gray-700">{argument.content}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No arguments yet. Be the first to share your thoughts!</p>
-                  <button className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-                    Add First Argument
-                  </button>
-                </div>
+                <p className="text-gray-500 mb-4">No arguments yet. Be the first to share your thoughts!</p>
               )}
             </div>
 

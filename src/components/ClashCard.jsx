@@ -1,29 +1,35 @@
+import ClashArgumentsDisplay from "./ClashArgumentsDisplay";
+import ClashShare from "./ClashShare";
 import React, { useState, useEffect, useRef } from "react";
 import ReactionPanel from "./ReactionPanel";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
+import ClashAuthorInfo from "./ClashAuthorInfo";
 
 export default function ClashCard({ 
   _id,
   vs_title, 
   vs_statement, 
+  vs_argument,
   tags = [], 
-  clashArguments = [], 
+  Clash_arguments = [], 
   reactions, 
   expires_at, 
   createdAt, 
   creator, 
-  user
+  user,
+  onReact,
+  onShare,
+  onArguments,
+  isDetailView = false
 }) {
   const isLoggedIn = Boolean(user);
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
   
   // Standardized argument handling
-  const safeArguments = Array.isArray(clashArguments) ? clashArguments : [];
-  const argumentCount = safeArguments.length;
-  const safeArgument = argumentCount > 0 ? safeArguments[0].text : "";
+  const argumentCount = Array.isArray(Clash_arguments) ? Clash_arguments.length : 0;
   
   const mockReactions = [
     { emoji: "👑", label: "Nailed It", description: "Fully agree" },
@@ -54,19 +60,19 @@ export default function ClashCard({
   const dropdownRef = useRef(null);
   
   // Menu yönetimi için state
-  const [activeMenu, setActiveMenu] = useState(null); // "react", "share", "arguments" veya null
+  const [activeMenu, setActiveMenu] = useState(null); // "react", "share", "Clash_arguments" veya null
   const [copied, setCopied] = useState(false);
   const [hovered, setHovered] = useState(false);
   const menuTimeoutRef = useRef(null);
   const copyTimeoutRef = useRef(null);
-  const menuRefs = useRef({
+  const menuRefs = {
     react: useRef(null),
     share: useRef(null),
-    arguments: useRef(null)
-  });
+    Clash_arguments: useRef(null)
+  };
   
-  // Örnek clash URL
-  const clashUrl = "https://versusly.co/c/abc123";
+  // Dynamic clash URL
+  const clashUrl = `${window.location.origin}/clash/${_id}`;
   const [selectedReaction, setSelectedReaction] = useState(null);
 
   useEffect(() => {
@@ -89,14 +95,14 @@ export default function ClashCard({
       }
       
       // Tüm menü referansları için kontrol
-      const insideReactMenu = menuRefs.current.react.current && 
-                             menuRefs.current.react.current.contains(event.target);
-      const insideShareMenu = menuRefs.current.share.current && 
-                             menuRefs.current.share.current.contains(event.target);
-      const insideArgumentsMenu = menuRefs.current.arguments.current &&
-                                  menuRefs.current.arguments.current.contains(event.target);
+      const insideReactMenu = menuRefs.react.current && 
+                             menuRefs.react.current.contains(event.target);
+      const insideShareMenu = menuRefs.share.current && 
+                             menuRefs.share.current.contains(event.target);
+      const insideClashArgumentsMenu = menuRefs.Clash_arguments.current &&
+                                      menuRefs.Clash_arguments.current.contains(event.target);
       
-      if (!insideReactMenu && !insideShareMenu && !insideArgumentsMenu) {
+      if (!insideReactMenu && !insideShareMenu && !insideClashArgumentsMenu) {
         setActiveMenu(null);
       }
     };
@@ -142,15 +148,11 @@ export default function ClashCard({
   };
 
 
-  // Arguments butonuna hover
-  const handleArgumentsButtonHover = () => {
-    if (menuTimeoutRef.current) {
-      clearTimeout(menuTimeoutRef.current);
+  // Clash Arguments butonuna hover
+  const handleClashArgumentsButtonHover = () => {
+    if (!isDetailView) {
+      setActiveMenu("Clash_arguments");
     }
-    
-    menuTimeoutRef.current = setTimeout(() => {
-      setActiveMenu("arguments");
-    }, 300); // 300ms gecikme ile menüyü aç
   };
 
   // Herhangi bir butondan mouse ayrıldığında
@@ -165,18 +167,12 @@ export default function ClashCard({
 
   // URL'yi kopyalama işlemi
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(clashUrl)
+    const textToCopy = `${window.location.origin}/clash/${_id}`;
+    navigator.clipboard.writeText(textToCopy)
       .then(() => {
         setCopied(true);
-        
-        // 2 saniye sonra copied state'ini sıfırla
-        if (copyTimeoutRef.current) {
-          clearTimeout(copyTimeoutRef.current);
-        }
-        
-        copyTimeoutRef.current = setTimeout(() => {
-          setCopied(false);
-        }, 2000);
+        if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+        copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
       })
       .catch(err => {
         console.error('Failed to copy URL: ', err);
@@ -205,9 +201,11 @@ export default function ClashCard({
     alert("Clash has been reported");
   };
 
-  // Arguments button click handler
-  const handleArgumentsClick = () => {
-    // Intentionally left blank or add navigation logic here
+  // Clash Arguments button click handler
+  const handleClashArgumentsClick = () => {
+    if (onArguments) {
+      onArguments(_id);
+    }
   };
 
   useEffect(() => {
@@ -226,30 +224,13 @@ export default function ClashCard({
     // tags effect, can be used for further logic if needed
   }, [tags]);
 
+  const statusLabel = getStatusLabel({ expires_at, createdAt });
+
   return (
     <div className="bg-bgwhite dark:bg-secondary rounded-2xl shadow-md border border-muted dark:border-muted-dark overflow-hidden transition-colors duration-300 relative">
       {/* Header */}
       <div className="flex items-center justify-between p-4">
-        <div className="flex items-center space-x-3">
-          <img
-            src={creator?.picture || "https://randomuser.me/api/portraits/men/75.jpg"}
-            alt={creator?.name || "Profile"}
-            className="w-10 h-10 rounded-full object-cover"
-          />
-          <div className="flex flex-col">
-            <span className="text-body text-secondary">
-              {creator?.name || "anonymous"}
-            </span>
-            <span className="text-caption text-mutedDark">
-              {(() => {
-                const date = new Date(createdAt);
-                return date instanceof Date && !isNaN(date.getTime())
-                  ? formatDistanceToNow(date, { addSuffix: true })
-                  : "sometime ago";
-              })()}
-            </span>
-          </div>
-        </div>
+        <ClashAuthorInfo creator={creator} createdAt={createdAt} />
         {/* Üç nokta menüsü */}
         <div className="relative" ref={dropdownRef}>
           <button 
@@ -289,29 +270,34 @@ export default function ClashCard({
         </div>
       </div>
 
-      {/* Görsel */}
-      <div className="w-full h-60 bg-muted25 dark:bg-zinc-800 flex items-center justify-center">
-        <img
-          src="/images/clash_card_final_design.png"
-          alt="Clash Visual"
-          className="object-cover w-full h-full"
-        />
-      </div>
+      {/* Görsel + İçerik as Link */}
+      <Link to={`/clash/${_id}`} className="block transition-colors duration-200">
+        <div className="w-full h-60 bg-muted25 dark:bg-zinc-800 flex items-center justify-center">
+          <img
+            src="/images/clash_card_final_design.png"
+            alt="Clash Visual"
+            className="object-cover w-full h-full"
+          />
+        </div>
 
-      {/* İçerik */}
-      <div className="p-4 space-y-4">
-        {/* Title and Tags */}
-        <div className="flex flex-wrap items-center gap-2 mb-2">
-          <div className="flex items-center space-x-2 text-label text-secondary">
-            <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
-            <span className="text-body font-bold">{safeTitle}</span>
+        <div className="p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            <div className="flex items-center space-x-2 text-label text-secondary w-full">
+              <span className="w-8 h-8 rounded-full bg-muted25 flex items-center justify-center text-body">⚔️</span>
+              <span className="text-body font-bold">{safeTitle}</span>
+            </div>
           </div>
-          {Array.isArray(tags) && tags.length > 0 && (
-            (() => {
+          <div className="flex flex-wrap items-center gap-2 mb-2 px-0">
+            {statusLabel && (
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-accent text-bgwhite">
+                {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
+              </span>
+            )}
+            {Array.isArray(tags) && tags.length > 0 && (() => {
               const displayedTags = tags.slice(0, 2);
               const remainingTagCount = tags.length - 2;
               return (
-                <div className="flex flex-wrap gap-2">
+                <>
                   {displayedTags.map((tag, index) => (
                     <span key={index} className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-caption bg-muted25 text-secondary">
                       🏷️ {tag}
@@ -322,75 +308,22 @@ export default function ClashCard({
                       +{remainingTagCount}
                     </span>
                   )}
-                </div>
+                </>
               );
-            })()
-          )}
-        </div>
-
-        {/* Clash info block */}
-        {(() => {
-          const status = getStatusLabel({ 
-            createdAt, 
-            expires_at, 
-            argumentCount, // Using standardized argumentCount
-            reactions 
-          });
-          let emoji = "⚡";
-          if (status === "hot") emoji = "🤯";
-          else if (status === "finished") emoji = "⏰";
-
-          let timePart = "";
-          if (status === "finished") {
-            timePart = "Time's up to join.";
-          } else {
-            const expires = new Date(expires_at);
-            const now = new Date();
-            let timeDiffMs = expires - now;
-            if (timeDiffMs < 0) timeDiffMs = 0;
-            const timeDiffH = Math.floor(timeDiffMs / 1000 / 60 / 60);
-            const timeDiffM = Math.floor((timeDiffMs / 1000 / 60) % 60);
-            timePart = `Last ${timeDiffH}h ${timeDiffM}m to join.`;
-          }
-
-          return (
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-caption whitespace-nowrap bg-muted25 text-secondary pl-2">
-                <span className="mr-1 font-sans not-italic" role="img" aria-label="icon">{emoji}</span>
-                <span>
-                  {status.charAt(0).toUpperCase() + status.slice(1)} Clash – <span className="text-alert">{timePart}</span>
-                </span>
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Statement and Argument */}
-        <h2 className="text-subheading text-secondary mt-1">{safeStatement}</h2>
-        {safeArgument && (
-          <h3 className="text-body text-secondary mt-1">{safeArgument}</h3>
-        )}
-
-        {/* Reaction counts */}
-        {Object.keys(safeReactions).length > 0 && (
-          <div className="flex flex-wrap gap-3 items-center mt-2">
-            {Object.entries(safeReactions).map(([label, count]) => (
-              <div key={label} className="flex items-center gap-1 px-2 py-1 bg-muted25 rounded-full text-caption text-secondary">
-                <span>{label}</span>
-                <span className="font-bold">{count}</span>
-              </div>
-            ))}
+            })()}
           </div>
-        )}
-        {/* Dotted Separator */}
-        <div className="border-t border-dotted border-muted my-4" />
-      </div>
+
+          <h2 className="text-subheading text-secondary mt-1">{safeStatement}</h2>
+
+          <div className="border-t border-dotted border-muted my-4" />
+        </div>
+      </Link>
 
       {/* Footer Aksiyonları */}
       <div className="px-4 pt-0 pb-4 space-y-2">
         <div className="flex justify-between gap-2">
           {/* React Button */}
-          <div className="flex-1 relative" ref={menuRefs.current.react}>
+          <div className="flex-1 relative" ref={menuRefs.react}>
             <ReactionPanel
               clashId={_id}
               user={user}
@@ -400,57 +333,25 @@ export default function ClashCard({
             />
           </div>
 
-          {/* Arguments Button */}
-          <div className="flex-1 relative" ref={menuRefs.current.arguments}>
-            <div className="relative group w-full">
-              <button
-                className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4"
-                onMouseEnter={handleArgumentsButtonHover}
-                onMouseLeave={handleButtonMouseLeave}
-                onClick={handleArgumentsClick}
-              >
-                <span>🤺</span>
-                <span>Args ({argumentCount})</span>
-              </button>
-              {activeMenu === "arguments" && (
-                <div
-                  className="absolute bottom-12 left-0 bg-white rounded-2xl shadow-lg p-3 z-50 transition-all duration-200 ease-out animate-fadeIn max-w-xs"
-                  onMouseEnter={() => setActiveMenu("arguments")}
-                  onMouseLeave={() => setActiveMenu(null)}
-                >
-                  <div className="text-caption text-secondary whitespace-nowrap">
-                    {argumentCount === 0 ? (
-                      "No arguments yet – strike the first one."
-                    ) : (
-                      <>
-                        {`${argumentCount} argument${argumentCount === 1 ? '' : 's'} swang.`}
-                        <div className="mt-1 text-mutedDark italic">
-                          💬 {safeArguments[argumentCount - 1]?.text?.slice(0, 25)}...
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+          {/* Clash Arguments Button */}
+          <div className="flex-1">
+            <ClashArgumentsDisplay
+              argumentCount={argumentCount}
+              Clash_arguments={Clash_arguments}
+              onHover={handleClashArgumentsButtonHover}
+              onClick={handleClashArgumentsClick}
+              buttonRef={menuRefs.Clash_arguments}
+            />
           </div>
 
           {/* Share Button */}
-          <div className="flex-1 relative" ref={menuRefs.current.share}>
-            <button
-              className="w-full flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4"
-              onMouseEnter={() => setHovered(true)}
-              onMouseLeave={() => setHovered(false)}
-              onClick={copyToClipboard}
-            >
-              <span>🔗</span>
-              <span>{copied ? "Link copied!" : hovered ? "Tap to copy" : "Copy Link"}</span>
-            </button>
+          <div className="flex-1 relative" ref={menuRefs.share}>
+            <ClashShare clashId={_id} />
           </div>
         </div>
 
         {/* Check This CTA */}
-        <div className="w-full">
+        {/* <div className="w-full">
           <div className="relative group w-full">
             {_id && (
               <Link
@@ -461,7 +362,7 @@ export default function ClashCard({
               </Link>
             )}
           </div>
-        </div>
+        </div> */}
       </div>
 
     </div>
