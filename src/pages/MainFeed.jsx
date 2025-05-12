@@ -13,13 +13,19 @@ const MainFeed = ({ user, setUser }) => {
   const { clashId } = useParams();
   const [selectedTag, setSelectedTag] = useState(null);
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+
+  useEffect(() => {
+    console.log("searchQuery updated:", searchQuery);
+  }, [searchQuery]);
   const [forceOpenForm, setForceOpenForm] = useState(false);
 
   // Handle search events from both MobileMenu and RightSidebar
   useEffect(() => {
     const handleSearch = (event) => {
       const query = event.detail.query;
-      setSearchQuery(query);
+      if (query !== searchQuery) {
+        setSearchQuery(query);
+      }
     };
 
     const handleOpenForm = () => {
@@ -33,7 +39,7 @@ const MainFeed = ({ user, setUser }) => {
       window.removeEventListener("searchTriggered", handleSearch);
       window.removeEventListener("openClashForm", handleOpenForm);
     };
-  }, []);
+  }, [searchQuery]);
 
   // Reset forceOpenForm after it's been handled
   const handleFormOpened = () => {
