@@ -115,7 +115,7 @@ router.get('/search', async (req, res) => {
     })
     .sort({ createdAt: -1 })
     .limit(20)
-    // .populate("creator", "name picture email");
+    .populate("creator", "name picture email");
 
     res.json(clashes);
   } catch (err) {

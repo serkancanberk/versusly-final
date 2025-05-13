@@ -60,7 +60,17 @@ const SearchResults = ({ user }) => {
           vs_argument: item.vs_argument || item.argument || "",
           Clash_arguments: item.Clash_arguments || [],
           argumentCount,
-          creator: typeof item.creator === "object" && item.creator !== null ? item.creator : null,
+          creator: item.creator && typeof item.creator === "object"
+            ? {
+                name: item.creator.name || "Unknown",
+                picture: item.creator.picture || "",
+                email: item.creator.email || ""
+              }
+            : {
+                name: "Unknown",
+                picture: "",
+                email: ""
+              },
           statusLabel: getStatusLabel({ 
             createdAt: item.createdAt, 
             expires_at: item.expires_at, 

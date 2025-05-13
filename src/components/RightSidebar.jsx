@@ -28,6 +28,7 @@ const RightSidebar = ({ user, setUser }) => {
   const [showRecentSearches, setShowRecentSearches] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
   const searchInputRef = useRef(null);
+  const [selectedTag, setSelectedTag] = useState(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -159,10 +160,18 @@ const RightSidebar = ({ user, setUser }) => {
             topTags.map(({ tag, count }) => (
               <button
                 key={tag}
-                onClick={() => navigate(`/tag/${encodeURIComponent(tag)}`)}
+                onClick={() => {
+                  if (selectedTag === tag) {
+                    setSelectedTag(null);
+                    navigate("/");
+                  } else {
+                    setSelectedTag(tag);
+                    navigate(`/tag/${encodeURIComponent(tag)}`);
+                  }
+                }}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
                   getTagColor(tag)
-                }`}
+                } ${selectedTag === tag ? 'ring-2 ring-accent scale-[1.05]' : ''}`}
                 title={`${count} clashes`}
               >
                 {tag}

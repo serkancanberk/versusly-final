@@ -1,12 +1,19 @@
 // src/components/MobileMenu.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { GoogleLogin } from "@react-oauth/google";
 
-export default function MobileMenu({ isOpen, onClose }) {
+export default function MobileMenu({ isOpen, onClose, user, setUser }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [topTags, setTopTags] = useState([]);
   const [isLoadingTags, setIsLoadingTags] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   // Fetch top tags
   useEffect(() => {
@@ -39,11 +46,18 @@ export default function MobileMenu({ isOpen, onClose }) {
   const handleTagClick = (tag) => {
     onClose();
     setTimeout(() => {
-      const event = new CustomEvent("searchTriggered", {
-        detail: { query: tag }
-      });
-      window.dispatchEvent(event);
+      navigate(`/tag/${encodeURIComponent(tag)}`);
     }, 300); // match transition duration
+  };
+
+  // Handle search
+  const handleSearch = (query) => {
+    if (query.trim()) {
+      navigate(`/search?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      navigate('/');
+    }
+    onClose();
   };
 
   // Handle animations
@@ -62,6 +76,21 @@ export default function MobileMenu({ isOpen, onClose }) {
       document.body.style.overflow = 'auto';
     };
   }, [isOpen]);
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await fetch("http://localhost:8080/api/auth/logout", {
+        method: "POST",
+        credentials: "include"
+      });
+      setUser(null);
+      onClose();
+      navigate("/");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
+  };
 
   if (!isVisible && !isOpen) return null;
 
@@ -88,6 +117,63 @@ export default function MobileMenu({ isOpen, onClose }) {
         </button>
       </div>
 
+      {/* Auth Section */}
+      <div className="p-4 border-b border-muted dark:border-gray-700">
+        {user ? (
+          <div className="flex items-center space-x-3">
+            <img
+              src={user.picture || "/default-avatar.png"}
+              alt={user.name || "User Avatar"}
+              className="w-12 h-12 rounded-full ring-2 ring-accent object-cover"
+            />
+            <div className="flex-1">
+              <p className="font-semibold text-body text-secondary dark:text-gray-300">{user.name}</p>
+              <p className="text-caption text-mutedDark dark:text-gray-400">{user.email}</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="text-caption text-mutedDark dark:text-gray-400 hover:text-alert dark:hover:text-alert transition-colors"
+              aria-label="Sign out"
+            >
+              💀
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center space-y-3">
+            <p className="text-body text-secondary dark:text-gray-300 text-center">
+              Join the clash and make your voice heard!
+            </p>
+            {isClient && (
+              <GoogleLogin
+                onSuccess={(credentialResponse) => {
+                  const token = credentialResponse.credential;
+                  fetch("http://localhost:8080/api/auth/google", {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    credentials: "include",
+                    body: JSON.stringify({ token }),
+                  })
+                    .then((res) => res.json())
+                    .then((data) => {
+                      setUser(data.user);
+                      onClose();
+                    })
+                    .catch(() => {});
+                }}
+                onError={() => {}}
+                size="large"
+                width="100%"
+                text="signin_with"
+                shape="rectangular"
+                theme="filled_blue"
+              />
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Search Input */}
       <div className="p-4 border-b border-muted dark:border-muted rounded-lg">
         <div className="relative">
@@ -101,26 +187,17 @@ export default function MobileMenu({ isOpen, onClose }) {
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
                 e.preventDefault();
-                onClose();
-                const event = new CustomEvent("searchTriggered", {
-                  detail: { query: searchQuery.trim() }
-                });
-                window.dispatchEvent(event);
-                // Update URL with search query
-                const url = new URL(window.location.href);
-                if (searchQuery.trim()) {
-                  url.searchParams.set('q', searchQuery.trim());
-                } else {
-                  url.searchParams.delete('q');
-                }
-                window.history.pushState({}, '', url);
+                handleSearch(searchQuery);
               }
             }}
           />
           {searchQuery.trim() !== "" ? (
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary dark:text-gray-300 hover:text-alert dark:hover:text-alert"
-              onClick={() => setSearchQuery("")}
+              onClick={() => {
+                setSearchQuery("");
+                handleSearch("");
+              }}
               aria-label="Clear search"
             >
               ❌
@@ -128,18 +205,7 @@ export default function MobileMenu({ isOpen, onClose }) {
           ) : (
             <button
               className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary dark:text-gray-300 hover:text-alert dark:hover:text-alert"
-              onClick={() => {
-                if (searchQuery.trim() !== "") {
-                  onClose();
-                  const event = new CustomEvent("searchTriggered", {
-                    detail: { query: searchQuery.trim() }
-                  });
-                  window.dispatchEvent(event);
-                  const url = new URL(window.location.href);
-                  url.searchParams.set('q', searchQuery.trim());
-                  window.history.pushState({}, '', url);
-                }
-              }}
+              onClick={() => handleSearch(searchQuery)}
               aria-label="Trigger search"
             >
               🔍

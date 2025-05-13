@@ -69,7 +69,7 @@ const TagResults = ({ user }) => {
 
       setAllClashes(transformedData);
       setFilteredClashes(transformedData);
-      setVisibleClashes(transformedData.slice(0, CHUNK_SIZE));
+      setVisibleClashes(transformedData.length > CHUNK_SIZE ? transformedData.slice(0, CHUNK_SIZE) : transformedData);
     } catch (err) {
       console.error("Error fetching clashes:", err);
     } finally {
@@ -105,7 +105,7 @@ const TagResults = ({ user }) => {
   }, [visibleClashes, filteredClashes]);
 
   return (
-    <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
+    <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px] pt-20 pb-4 border-b border-muted">
         <div className="px-4">
@@ -132,7 +132,16 @@ const TagResults = ({ user }) => {
 
       {/* Feed Section */}
       <section className="bg-bgashwhite px-4 space-y-6 mt-8">
-        {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
+        {isLoading ? (
+          <div className="space-y-6">
+            {[...Array(3)].map((_, index) => (
+              <div
+                key={index}
+                className="h-48 bg-muted25 rounded-2xl animate-pulse"
+              ></div>
+            ))}
+          </div>
+        ) : Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
           visibleClashes.map((clash) => {
             return clash && clash._id ? (
               <div 
@@ -155,15 +164,6 @@ const TagResults = ({ user }) => {
               </div>
             ) : null;
           })
-        ) : isLoading ? (
-          <div className="space-y-6">
-            {[...Array(3)].map((_, index) => (
-              <div
-                key={index}
-                className="h-48 bg-muted25 rounded-2xl animate-pulse"
-              ></div>
-            ))}
-          </div>
         ) : (
           <div className="p-8 text-center flex flex-col items-center">
             <img
@@ -172,7 +172,8 @@ const TagResults = ({ user }) => {
               className="w-40 h-40 mb-4 opacity-80"
             />
             <div className="text-label text-mutedDark mb-2">
-              🧂 Looks like this tag hasn't caused any fights yet...
+              🤔 Hmm... Nothing sparked a clash this time. <br />
+              Why not start one yourself?
             </div>
             <button
               onClick={() => window.location.href = "/"}
@@ -199,7 +200,7 @@ const TagResults = ({ user }) => {
       <section className="bg-bgashwhite border-t border-muted py-8 pb-20">
         {visibleClashes.length > 0 && (
           <div className="text-center text-label text-mutedDark">
-            Showing {visibleClashes.length} of {allClashes.length} clash{allClashes.length > 1 ? "es" : ""}
+            Showing {visibleClashes.length} of {filteredClashes.length} clash{filteredClashes.length !== 1 ? "es" : ""}
           </div>
         )}
       </section>
