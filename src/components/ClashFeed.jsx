@@ -4,31 +4,19 @@ import ClashCard from "./ClashCard";
 import ClashForm from "./ClashForm";
 import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
-import { sanitizeInput, formatGPTResponse, generatePromptFromForm } from "../utils/gptUtils.js";
 
 const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
   const navigate = useNavigate();
   const [allClashes, setAllClashes] = useState([]); // Store all clashes
   const [filteredClashes, setFilteredClashes] = useState([]); // Store filtered clashes
-  const [visibleClashes, setVisibleClashes] = useState([]); // Store currently visible clashes
-  const [offset, setOffset] = useState(0);
-  const offsetRef = useRef(0);
-  const [hasMore, setHasMore] = useState(true);
-  const loaderRef = useRef(null);
-  const feedRef = useRef(null);
-  const CHUNK_SIZE = 5; // Number of items to load at once
+  const [visibleClashes, setVisibleClashes] = useState([]); // Store visible clashes for pagination
   const [isLoading, setIsLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const CHUNK_SIZE = 5; // Number of clashes to show initially and load more
 
   // Filter by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [sortOption, setSortOption] = useState("all"); // default: all
   const sortMenuRef = useRef(null);
-
-  // New state for loading feedback
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  // New state for completion feedback
-  const [allItemsLoaded, setAllItemsLoaded] = useState(false);
 
   // State for share toast
   const [showShareToast, setShowShareToast] = useState(false);
@@ -87,8 +75,6 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
 
       setAllClashes(transformedData);
       setFilteredClashes(transformedData);
-      setVisibleClashes(transformedData.slice(0, CHUNK_SIZE));
-      setHasMore(transformedData.length > CHUNK_SIZE);
     } catch (err) {
       console.error("Error fetching clashes:", err);
     } finally {
@@ -126,67 +112,8 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     }
 
     setFilteredClashes(filtered);
-    setOffset(0); // Reset offset when filter changes
-    setVisibleClashes(filtered.slice(0, CHUNK_SIZE)); // Show first chunk
-    setHasMore(filtered.length > CHUNK_SIZE); // Update hasMore based on remaining items
+    setVisibleClashes(filtered.slice(0, CHUNK_SIZE)); // Set initial visible clashes
   }, [sortOption, allClashes]);
-
-  // Load more items when scrolling
-  const loadMoreItems = async () => {
-    if (!hasMore || isLoading || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    const nextOffset = offset + CHUNK_SIZE;
-    const nextItems = filteredClashes.slice(nextOffset, nextOffset + CHUNK_SIZE);
-    
-    if (nextItems.length > 0) {
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter out any potential duplicates
-      setVisibleClashes(prev => {
-        const existingIds = new Set(prev.map(item => item._id));
-        const newItems = nextItems.filter(item => !existingIds.has(item._id));
-        return [...prev, ...newItems];
-      });
-      
-      setOffset(nextOffset);
-      const hasMoreItems = nextOffset + CHUNK_SIZE < filteredClashes.length;
-      setHasMore(hasMoreItems);
-      setAllItemsLoaded(!hasMoreItems);
-    } else {
-      setHasMore(false);
-      setAllItemsLoaded(true);
-    }
-    
-    setIsLoadingMore(false);
-  };
-
-  // Intersection Observer setup with adjusted sensitivity
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          loadMoreItems();
-        }
-      },
-      {
-        root: null,
-        rootMargin: "300px", // Increased margin for earlier trigger
-        threshold: 0.1,
-      }
-    );
-
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
-
-    return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
-    };
-  }, [hasMore, isLoading, isLoadingMore, offset, filteredClashes]);
 
   // Handle clicks outside the sort dropdown
   useEffect(() => {
@@ -209,12 +136,6 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showSortDropdown]);
-
-  // Reset loading states when filter changes
-  useEffect(() => {
-    setAllItemsLoaded(false);
-    setIsLoadingMore(false);
-  }, [sortOption]);
 
   // Filter by dropdown'ı aç/kapat
   const toggleSortDropdown = () => {
@@ -243,150 +164,148 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     setAllClashes(prev => [newClash, ...prev.filter(item => String(item._id) !== String(newClash._id))]);
   };
 
+  // Handle load more
+  const handleLoadMore = () => {
+    const nextClashes = filteredClashes.slice(0, visibleClashes.length + CHUNK_SIZE);
+    setVisibleClashes(nextClashes);
+  };
+
   return (
-    <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]" ref={feedRef}>
-      {/* Title and description above feed */}
-      <div className="px-4 pt-20 pb-1 mb-1">
-        <h1 className="text-subheading text-secondary flex items-center gap-2">
-          🔥 Clash Starts Here.
-        </h1>
-        <p className="text-label text-secondary opacity-50">
-          Your bold statement meets its rival. AI scores both sides. The crowd decides.
-        </p>
-      </div>
-
-      {/* Share toast */}
-      {showShareToast && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-secondary text-white px-4 py-2 rounded-full shadow-lg z-50">
-          Link copied!
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]">
+        <div className="px-4 pt-20 pb-1 mb-1">
+          <h1 className="text-subheading text-secondary flex items-center gap-2">
+            🔥 Clash Starts Here.
+          </h1>
+          <p className="text-label text-secondary opacity-50">
+            Your bold statement meets its rival. AI scores both sides. The crowd decides.
+          </p>
         </div>
-      )}
 
-      {/* ClashForm component */}
-      <ClashForm
-        user={user}
-        forceOpenForm={forceOpenForm}
-        onFormOpened={onFormOpened}
-        onClashCreated={handleClashCreated}
-      />
+        {/* Share toast */}
+        {showShareToast && (
+          <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-secondary text-white px-4 py-2 rounded-full shadow-lg z-50">
+            Link copied!
+          </div>
+        )}
 
-      {/* Sort dropdown and options */}
-      <div className="p-8 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
-        <h2 className="text-body text-secondary flex items-center gap-2">
-          🔥 Highlighted Clashes
-        </h2>
-        <div className="relative" ref={sortMenuRef}>
-          <button 
-            className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
-            onClick={toggleSortDropdown}
-            title="Filter clashes"
-          >
-            <span>Filter by:</span>
-            <span className="font-medium text-secondary">
-              {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
-            </span>
-            <span className="text-xs">▼</span>
-          </button>
-          {showSortDropdown && (
-            <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg z-20 w-36">
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("all")}
-              >
-              ⚔️ All
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("hot")}
-              >
-              🤯 Hot
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("new")}
-              >
-               ⚡ New
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("finished")}
-              >
-                ⏰ Finished
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+        {/* ClashForm component */}
+        <ClashForm
+          user={user}
+          forceOpenForm={forceOpenForm}
+          onFormOpened={onFormOpened}
+          onClashCreated={handleClashCreated}
+        />
+      </section>
 
-      {/* Clash list */}
-      <div className="space-y-6 px-4 bg-bgashwhite">
-        {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
-          visibleClashes.map((clash) => {
-            return clash && clash._id ? (
-              <div key={clash._id} className="mb-10 pb-6">
-                <ClashCard
-                  _id={clash._id}
-                  vs_title={clash.vs_title}
-                  vs_statement={clash.vs_statement}
-                  argument={clash.vs_argument || (clash.Clash_arguments?.[0]?.text || "")}
-                  Clash_arguments={clash.Clash_arguments || []}
-                  reactions={clash.reactions}
-                  tags={clash.tags}
-                  expires_at={clash.expires_at}
-                  createdAt={clash.createdAt}
-                  creator={clash.creator}
-                  user={user}
-                />
+      {/* Feed Section */}
+      <section className="bg-bgashwhite">
+        {/* Sort dropdown and options */}
+        <div className="p-8 flex justify-between items-center border-t border-muted">
+          <h2 className="text-body text-secondary flex items-center gap-2">
+            🔥 Highlighted Clashes
+          </h2>
+          <div className="relative" ref={sortMenuRef}>
+            <button 
+              className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
+              onClick={toggleSortDropdown}
+              title="Filter clashes"
+            >
+              <span>Filter by:</span>
+              <span className="font-medium text-secondary">
+                {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
+              </span>
+              <span className="text-xs">▼</span>
+            </button>
+            {showSortDropdown && (
+              <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg z-20 w-36">
+                <button
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                  onClick={() => handleSortOptionChange("all")}
+                >
+                ⚔️ All
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                  onClick={() => handleSortOptionChange("hot")}
+                >
+                🤯 Hot
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                  onClick={() => handleSortOptionChange("new")}
+                >
+                 ⚡ New
+                </button>
+                <button
+                  className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
+                  onClick={() => handleSortOptionChange("finished")}
+                >
+                  ⏰ Finished
+                </button>
               </div>
-            ) : null;
-          })
-        ) : (
-          isLoading ? (
-            <div className="space-y-6 px-4 bg-bgashwhite">
-              {[...Array(3)].map((_, index) => (
-                <div
-                  key={index}
-                  className="h-48 bg-muted25 rounded-2xl animate-pulse"
-                ></div>
-              ))}
-            </div>
+            )}
+          </div>
+        </div>
+
+        {/* Clash list */}
+        <div className="space-y-6 px-4">
+          {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
+            visibleClashes.map((clash) => {
+              return clash && clash._id ? (
+                <div key={clash._id} className="mb-10 pb-6">
+                  <ClashCard
+                    _id={clash._id}
+                    vs_title={clash.vs_title}
+                    vs_statement={clash.vs_statement}
+                    argument={clash.vs_argument || (clash.Clash_arguments?.[0]?.text || "")}
+                    Clash_arguments={clash.Clash_arguments || []}
+                    reactions={clash.reactions}
+                    tags={clash.tags}
+                    expires_at={clash.expires_at}
+                    createdAt={clash.createdAt}
+                    creator={clash.creator}
+                    user={user}
+                  />
+                </div>
+              ) : null;
+            })
           ) : (
-            <div className="p-8 text-center flex flex-col items-center">
+            <div className="text-center py-12">
               <img
                 src={NoResultsIllustration}
                 alt="No results"
-                className="w-40 h-40 mb-4 opacity-80"
+                className="w-48 h-48 mx-auto mb-4"
               />
-              <div className="text-label text-mutedDark mb-2">
-                It's a little quiet here. How about launching the very first clash?
-              </div>
+              <p className="text-label text-secondary opacity-50">
+                No clashes found. Be the first to start a clash!
+              </p>
             </div>
-          )
-        )}
-      </div>
+          )}
 
-      {/* Clash count info */}
-      {filteredClashes.length > 0 && (
-        <div className="text-center text-label text-mutedDark py-2">
-          Showing {visibleClashes.length} of {filteredClashes.length} clash{filteredClashes.length > 1 ? "es" : ""}
-        </div>
-      )}
-
-      {/* Loading indicator with enhanced feedback */}
-      {(hasMore || allItemsLoaded) && (
-        <div 
-          ref={loaderRef} 
-          className="p-4 text-center text-label text-mutedDark"
-        >
-          {isLoadingMore ? (
-            "Loading more clashes..."
-          ) : allItemsLoaded ? (
-            "✅ All clashes loaded"
-          ) : (
-            "Scroll for more"
+          {/* Load More Button */}
+          {visibleClashes.length < filteredClashes.length && (
+            <div className="text-center py-4">
+              <button
+                onClick={handleLoadMore}
+                className="px-4 py-2 bg-secondary text-white rounded-md text-caption hover:bg-secondary/80 transition"
+              >
+                Show more
+              </button>
+            </div>
           )}
         </div>
-      )}
+      </section>
+
+      {/* Footer Section */}
+      <section className="bg-bgashwhite border-t border-muted">
+        {visibleClashes.length > 0 && (
+          <div className="text-center text-label text-mutedDark py-8 pb-20">
+            Showing {visibleClashes.length} of {allClashes.length} clash{allClashes.length > 1 ? "es" : ""}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

@@ -48,14 +48,9 @@ export const createClash = async (req, res) => {
 
 export const getClashes = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 5;
-    const offset = parseInt(req.query.offset) || 0;
-
     // Fetch paginated clashes
     const rawClashes = await Clash.find()
       .sort({ createdAt: -1 })
-      .skip(offset)
-      .limit(limit)
       .populate("creator", "name picture email");
 
     // For each clash, compute live reaction totals
