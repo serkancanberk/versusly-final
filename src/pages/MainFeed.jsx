@@ -55,7 +55,7 @@ const MainFeed = ({ user, setUser }) => {
           ) : searchQuery ? (
             <SearchResults user={user} />
           ) : tagName ? (
-            <TagResults user={user} />
+            <TagResults user={user} tag={tagName} />
           ) : (
             <ClashFeed 
               user={user}

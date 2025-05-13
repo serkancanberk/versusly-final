@@ -12,14 +12,10 @@ const SearchResults = ({ user }) => {
   const [allClashes, setAllClashes] = useState([]);
   const [filteredClashes, setFilteredClashes] = useState([]);
   const [visibleClashes, setVisibleClashes] = useState([]);
-  const [offset, setOffset] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [allItemsLoaded, setAllItemsLoaded] = useState(false);
   
   const loaderRef = useRef(null);
-  const feedRef = useRef(null);
   const CHUNK_SIZE = 5;
 
   // Fetch clashes matching search query
@@ -77,7 +73,6 @@ const SearchResults = ({ user }) => {
       setAllClashes(transformedData);
       setFilteredClashes(transformedData);
       setVisibleClashes(transformedData.slice(0, CHUNK_SIZE));
-      setHasMore(transformedData.length > CHUNK_SIZE);
     } catch (err) {
       console.error("Error fetching clashes:", err);
     } finally {
@@ -90,87 +85,63 @@ const SearchResults = ({ user }) => {
     fetchClashes();
   }, [searchQuery]);
 
-  // Load more items when scrolling
-  const loadMoreItems = async () => {
-    if (!hasMore || isLoading || isLoadingMore) return;
-
-    setIsLoadingMore(true);
-    const nextOffset = offset + CHUNK_SIZE;
-    const nextItems = filteredClashes.slice(nextOffset, nextOffset + CHUNK_SIZE);
-    
-    if (nextItems.length > 0) {
-      // Simulate loading delay
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Filter out any potential duplicates
-      setVisibleClashes(prev => {
-        const existingIds = new Set(prev.map(item => item._id));
-        const newItems = nextItems.filter(item => !existingIds.has(item._id));
-        return [...prev, ...newItems];
-      });
-      
-      setOffset(nextOffset);
-      const hasMoreItems = nextOffset + CHUNK_SIZE < filteredClashes.length;
-      setHasMore(hasMoreItems);
-      setAllItemsLoaded(!hasMoreItems);
-    } else {
-      setHasMore(false);
-      setAllItemsLoaded(true);
-    }
-    
-    setIsLoadingMore(false);
-  };
-
-  // Intersection Observer setup
+  // Add IntersectionObserver effect
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !isLoadingMore) {
-          loadMoreItems();
-        }
-      },
-      {
-        root: null,
-        rootMargin: "300px",
-        threshold: 0.1,
-      }
-    );
+    if (!loaderRef.current || visibleClashes.length >= filteredClashes.length) return;
 
-    if (loaderRef.current) {
-      observer.observe(loaderRef.current);
-    }
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setIsLoadingMore(true);
+        setTimeout(() => {
+          const nextClashes = filteredClashes.slice(0, visibleClashes.length + CHUNK_SIZE);
+          setVisibleClashes(nextClashes);
+          setIsLoadingMore(false);
+        }, 1000); // Extended delay for better visual feedback
+      }
+    });
+
+    observer.observe(loaderRef.current);
 
     return () => {
-      if (loaderRef.current) {
-        observer.unobserve(loaderRef.current);
-      }
+      if (loaderRef.current) observer.unobserve(loaderRef.current);
     };
-  }, [hasMore, isLoading, isLoadingMore, offset, filteredClashes]);
+  }, [visibleClashes, filteredClashes]);
 
   return (
-    <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]" ref={feedRef}>
-      {/* Title and description */}
-      <div className="px-4 pt-20 pb-1 mb-1">
-        <h1 className="text-subheading text-secondary flex items-center gap-2">
-          {filteredClashes.length > 0 ? (
-            <>🔍 Search results for "{searchQuery}"</>
-          ) : (
-            <>🤷 No clashes found for "{searchQuery}"</>
-          )}
-        </h1>
-        <p className="text-label text-secondary opacity-50">
-          {filteredClashes.length > 0 
-            ? `Found ${filteredClashes.length} clash${filteredClashes.length > 1 ? 'es' : ''} matching your search`
-            : 'Try different keywords or browse all clashes'}
-        </p>
-      </div>
+    <div className="min-h-screen">
+      {/* Hero Section */}
+      <section className="bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px] pt-20 pb-4 border-b border-muted">
+        <div className="px-4">
+          <h1 className="text-subheading text-secondary flex items-center gap-2">
+            {filteredClashes.length > 0 ? (
+              <>🔍 Search results for "{searchQuery}"</>
+            ) : (
+              <>🤷 No clashes found for "{searchQuery}"</>
+            )}
+          </h1>
+          <p className="text-label text-secondary opacity-50">
+            {filteredClashes.length > 0 
+              ? `Found ${filteredClashes.length} clash${filteredClashes.length > 1 ? 'es' : ''} matching your search`
+              : 'Try different keywords or browse all clashes'}
+          </p>
+          <button
+            onClick={() => window.location.href = "/"}
+            className="mt-4 text-label text-accent underline hover:opacity-80 transition-opacity"
+          >
+            ← Back to main feed
+          </button>
+        </div>
+      </section>
 
-      {/* Clash list */}
-      <div className="space-y-6 px-4 bg-bgashwhite">
+      {/* Feed Section */}
+      <section className="bg-bgashwhite px-4 space-y-6 mt-8">
         {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
           visibleClashes.map((clash) => {
             return clash && clash._id ? (
-              <div key={clash._id} className="mb-10 pb-6">
+              <div 
+                key={clash._id} 
+                className="mb-10 pb-6 opacity-0 animate-[fadeIn_0.8s_ease-in-out_forwards]"
+              >
                 <ClashCard
                   _id={clash._id}
                   vs_title={clash.vs_title}
@@ -189,7 +160,7 @@ const SearchResults = ({ user }) => {
           })
         ) : (
           isLoading ? (
-            <div className="space-y-6 px-4 bg-bgashwhite">
+            <div className="space-y-6">
               {[...Array(3)].map((_, index) => (
                 <div
                   key={index}
@@ -205,35 +176,39 @@ const SearchResults = ({ user }) => {
                 className="w-40 h-40 mb-4 opacity-80"
               />
               <div className="text-label text-mutedDark mb-2">
-                No clashes found matching your search criteria
+                🤔 Hmm... Nothing sparked a clash this time. <br />
+                Why not start one yourself?
               </div>
+              <button
+                onClick={() => window.location.href = "/"}
+                className="mt-2 text-label text-accent underline hover:opacity-80 transition-opacity"
+              >
+                🚀 Start a new clash
+              </button>
             </div>
           )
         )}
-      </div>
 
-      {/* Clash count info */}
-      {filteredClashes.length > 0 && (
-        <div className="text-center text-label text-mutedDark py-2">
-          Showing {visibleClashes.length} of {filteredClashes.length} clash{filteredClashes.length > 1 ? "es" : ""}
-        </div>
-      )}
+        {/* Infinite scroll loader */}
+        {visibleClashes.length < filteredClashes.length && (
+          <div
+            ref={loaderRef}
+            className="text-center py-8 text-caption text-mutedDark flex flex-col items-center justify-center space-y-2"
+          >
+            <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-mutedDark"></span>
+            <span>Loading more clashes...</span>
+          </div>
+        )}
+      </section>
 
-      {/* Loading indicator */}
-      {(hasMore || allItemsLoaded) && (
-        <div 
-          ref={loaderRef} 
-          className="p-4 text-center text-label text-mutedDark"
-        >
-          {isLoadingMore ? (
-            "Loading more clashes..."
-          ) : allItemsLoaded ? (
-            "✅ All clashes loaded"
-          ) : (
-            "Scroll for more"
-          )}
-        </div>
-      )}
+      {/* Footer Section */}
+      <section className="bg-bgashwhite border-t border-muted py-8 pb-20">
+        {visibleClashes.length > 0 && (
+          <div className="text-center text-label text-mutedDark">
+            Showing {visibleClashes.length} of {allClashes.length} clash{allClashes.length > 1 ? "es" : ""}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import MainFeed from "./pages/MainFeed";
+import TagResults from "./components/TagResults";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 
 // Helper function to check authentication status
@@ -78,6 +79,8 @@ function App() {
         <Routes>
           <Route path="/" element={<MainFeed user={user} setUser={setUser} />} />
           <Route path="/clash/:clashId" element={<MainFeed user={user} setUser={setUser} />} />
+          <Route path="/search" element={<MainFeed user={user} setUser={setUser} />} />
+          <Route path="/tag/:tagName" element={<MainFeed user={user} setUser={setUser} />} />
         </Routes>
       </Router>
     </GoogleOAuthProvider>

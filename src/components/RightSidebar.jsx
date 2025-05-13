@@ -114,7 +114,10 @@ const RightSidebar = ({ user, setUser }) => {
           />
           <div className="absolute right-2 top-2 text-secondary cursor-pointer">
             {searchQuery.length > 0 ? (
-              <span onClick={() => setSearchQuery("")}>✖</span>
+              <span onClick={() => {
+                setSearchQuery("");
+                navigate("/");
+              }}>✖</span>
             ) : (
               "🔍"
             )}

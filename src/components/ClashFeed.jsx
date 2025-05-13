@@ -11,7 +11,9 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
   const [filteredClashes, setFilteredClashes] = useState([]); // Store filtered clashes
   const [visibleClashes, setVisibleClashes] = useState([]); // Store visible clashes for pagination
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const CHUNK_SIZE = 5; // Number of clashes to show initially and load more
+  const loaderRef = useRef(null);
 
   // Filter by dropdown için state
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -164,11 +166,27 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     setAllClashes(prev => [newClash, ...prev.filter(item => String(item._id) !== String(newClash._id))]);
   };
 
-  // Handle load more
-  const handleLoadMore = () => {
-    const nextClashes = filteredClashes.slice(0, visibleClashes.length + CHUNK_SIZE);
-    setVisibleClashes(nextClashes);
-  };
+  // Add IntersectionObserver effect
+  useEffect(() => {
+    if (!loaderRef.current || visibleClashes.length >= filteredClashes.length) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        setIsLoadingMore(true);
+        setTimeout(() => {
+          const nextClashes = filteredClashes.slice(0, visibleClashes.length + CHUNK_SIZE);
+          setVisibleClashes(nextClashes);
+          setIsLoadingMore(false);
+        }, 1000); // Extended delay for better visual feedback
+      }
+    });
+
+    observer.observe(loaderRef.current);
+
+    return () => {
+      if (loaderRef.current) observer.unobserve(loaderRef.current);
+    };
+  }, [visibleClashes, filteredClashes]);
 
   return (
     <div className="min-h-screen">
@@ -254,7 +272,10 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
           {Array.isArray(visibleClashes) && visibleClashes.length > 0 ? (
             visibleClashes.map((clash) => {
               return clash && clash._id ? (
-                <div key={clash._id} className="mb-10 pb-6">
+                <div 
+                  key={clash._id} 
+                  className="mb-10 pb-6 opacity-0 animate-[fadeIn_0.8s_ease-in-out_forwards]"
+                >
                   <ClashCard
                     _id={clash._id}
                     vs_title={clash.vs_title}
@@ -284,15 +305,14 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
             </div>
           )}
 
-          {/* Load More Button */}
+          {/* Infinite scroll loader */}
           {visibleClashes.length < filteredClashes.length && (
-            <div className="text-center py-4">
-              <button
-                onClick={handleLoadMore}
-                className="px-4 py-2 bg-secondary text-white rounded-md text-caption hover:bg-secondary/80 transition"
-              >
-                Show more
-              </button>
+            <div
+              ref={loaderRef}
+              className="text-center py-8 text-caption text-mutedDark flex flex-col items-center justify-center space-y-2"
+            >
+              <span className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-mutedDark"></span>
+              <span>Loading more clashes...</span>
             </div>
           )}
         </div>

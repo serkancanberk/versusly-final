@@ -4,7 +4,8 @@ import Clash from '../models/Clash.js'; // Clash modelini doğru bir şekilde im
 import {
   createClash,
   getClashes,
-  getClashById
+  getClashById,
+  getClashesByTag
 } from '../controllers/clashController.js';
 import authenticateUser from "../middleware/authMiddleware.js";
 import getStatusLabel from '../utils/statusLabel.js';
@@ -93,6 +94,32 @@ router.get('/top-tags', async (req, res) => {
       error: err.message,
       stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
+  }
+});
+
+// Search clashes
+router.get('/search', async (req, res) => {
+  try {
+    const searchQuery = req.query.q;
+    
+    if (!searchQuery || searchQuery.trim().length < 2) {
+      return res.json([]);
+    }
+
+    const searchRegex = new RegExp(searchQuery.trim(), 'i'); // Case-insensitive partial matching
+    const clashes = await Clash.find({
+      $or: [
+        { vs_title: searchRegex },
+        { vs_statement: searchRegex }
+      ]
+    })
+    .sort({ createdAt: -1 })
+    .limit(20)
+    // .populate("creator", "name picture email");
+
+    res.json(clashes);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 });
 
@@ -204,31 +231,7 @@ router.post('/evaluate', authenticateUser, async (req, res) => {
   }
 });
 
-// Search clashes
-router.get('/search', async (req, res) => {
-  try {
-    const rawQuery = req.query.query;
-    const query = rawQuery ? rawQuery.trim() : "";
-    if (!query || query.length < 2) {
-      return res.json([]);
-    }
-
-    const searchRegex = new RegExp(`\\b${query}\\b`, 'i'); // Match full word boundary
-    const clashes = await Clash.find({
-      $or: [
-        { vs_title: searchRegex },
-        { vs_statement: searchRegex },
-        { tags: searchRegex }
-      ]
-    })
-    .sort({ createdAt: -1 })
-    .limit(20)
-    .populate("creator", "name picture email");
-
-    res.json(clashes);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-});
+// Get clashes by tag
+router.get('/tag/:tagName', getClashesByTag);
 
 export default router; // clashRoutes'u dışarıya aktarıyoruz
