@@ -1,43 +1,29 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useParams } from "react-router-dom";
 import NoResultsIllustration from '../assets/no-results-illustration.png';
 import ClashCard from "./ClashCard";
-import ClashForm from "./ClashForm";
-import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
-import { sanitizeInput, formatGPTResponse, generatePromptFromForm } from "../utils/gptUtils.js";
 
-const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
-  const navigate = useNavigate();
-  const [allClashes, setAllClashes] = useState([]); // Store all clashes
-  const [filteredClashes, setFilteredClashes] = useState([]); // Store filtered clashes
-  const [visibleClashes, setVisibleClashes] = useState([]); // Store currently visible clashes
+const TagResults = ({ user }) => {
+  const { tagName } = useParams();
+  const [allClashes, setAllClashes] = useState([]);
+  const [filteredClashes, setFilteredClashes] = useState([]);
+  const [visibleClashes, setVisibleClashes] = useState([]);
   const [offset, setOffset] = useState(0);
-  const offsetRef = useRef(0);
   const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [allItemsLoaded, setAllItemsLoaded] = useState(false);
+  
   const loaderRef = useRef(null);
   const feedRef = useRef(null);
-  const CHUNK_SIZE = 5; // Number of items to load at once
-  const [isLoading, setIsLoading] = useState(false);
-  const [isVisible, setIsVisible] = useState(false);
+  const CHUNK_SIZE = 5;
 
-  // Filter by dropdown için state
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [sortOption, setSortOption] = useState("all"); // default: all
-  const sortMenuRef = useRef(null);
-
-  // New state for loading feedback
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  // New state for completion feedback
-  const [allItemsLoaded, setAllItemsLoaded] = useState(false);
-
-  // State for share toast
-  const [showShareToast, setShowShareToast] = useState(false);
-
-  // Fetch clashes
+  // Fetch clashes matching tag
   const fetchClashes = async () => {
     setIsLoading(true);
     try {
-      const url = "http://localhost:8080/api/clashes";
+      const url = `http://localhost:8080/api/clashes/tag/${encodeURIComponent(tagName)}`;
 
       const res = await fetch(url, {
         credentials: 'include',
@@ -96,40 +82,10 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     }
   };
 
-  // Initial fetch
+  // Initial fetch when tag changes
   useEffect(() => {
     fetchClashes();
-  }, []);
-
-  // Filter clashes based on sortOption
-  useEffect(() => {
-    let filtered = [...allClashes];
-    
-    switch (sortOption) {
-      case "hot":
-        filtered = allClashes.filter(clash => clash.statusLabel === "hot");
-        break;
-      case "new":
-        filtered = allClashes.filter(clash => clash.statusLabel === "new");
-        break;
-      case "finished":
-        filtered = allClashes.filter(clash => clash.statusLabel === "finished");
-        break;
-      case "all":
-      default:
-        // Sort all clashes by status: hot -> new -> finished
-        filtered.sort((a, b) => {
-          const statusOrder = { hot: 0, new: 1, finished: 2 };
-          return statusOrder[a.statusLabel] - statusOrder[b.statusLabel];
-        });
-        break;
-    }
-
-    setFilteredClashes(filtered);
-    setOffset(0); // Reset offset when filter changes
-    setVisibleClashes(filtered.slice(0, CHUNK_SIZE)); // Show first chunk
-    setHasMore(filtered.length > CHUNK_SIZE); // Update hasMore based on remaining items
-  }, [sortOption, allClashes]);
+  }, [tagName]);
 
   // Load more items when scrolling
   const loadMoreItems = async () => {
@@ -162,7 +118,7 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     setIsLoadingMore(false);
   };
 
-  // Intersection Observer setup with adjusted sensitivity
+  // Intersection Observer setup
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
@@ -172,7 +128,7 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
       },
       {
         root: null,
-        rootMargin: "300px", // Increased margin for earlier trigger
+        rootMargin: "300px",
         threshold: 0.1,
       }
     );
@@ -188,134 +144,22 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
     };
   }, [hasMore, isLoading, isLoadingMore, offset, filteredClashes]);
 
-  // Handle clicks outside the sort dropdown
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (
-        sortMenuRef.current &&
-        !sortMenuRef.current.contains(event.target)
-      ) {
-        setShowSortDropdown(false);
-      }
-    };
-
-    if (showSortDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    } else {
-      document.removeEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showSortDropdown]);
-
-  // Reset loading states when filter changes
-  useEffect(() => {
-    setAllItemsLoaded(false);
-    setIsLoadingMore(false);
-  }, [sortOption]);
-
-  // Filter by dropdown'ı aç/kapat
-  const toggleSortDropdown = () => {
-    setShowSortDropdown(!showSortDropdown);
-  };
-
-  // Sort seçeneğini ayarla
-  const handleSortOptionChange = (option) => {
-    setSortOption(option);
-    setShowSortDropdown(false);
-  };
-
-  // Share handler
-  const handleShare = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setShowShareToast(true);
-      setTimeout(() => setShowShareToast(false), 2000);
-    } catch (err) {
-      console.error("Failed to copy URL:", err);
-    }
-  };
-
-  // Handle new clash creation
-  const handleClashCreated = (newClash) => {
-    setAllClashes(prev => [newClash, ...prev.filter(item => String(item._id) !== String(newClash._id))]);
-  };
-
   return (
     <div className="min-h-screen bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px]" ref={feedRef}>
-      {/* Title and description above feed */}
+      {/* Title and description */}
       <div className="px-4 pt-20 pb-1 mb-1">
         <h1 className="text-subheading text-secondary flex items-center gap-2">
-          🔥 Clash Starts Here.
+          {filteredClashes.length > 0 ? (
+            <>🏷️ Tagged with '{tagName}'</>
+          ) : (
+            <>🤷 No clashes found with tag '{tagName}'</>
+          )}
         </h1>
         <p className="text-label text-secondary opacity-50">
-          Your bold statement meets its rival. AI scores both sides. The crowd decides.
+          {filteredClashes.length > 0 
+            ? `Found ${filteredClashes.length} clash${filteredClashes.length > 1 ? 'es' : ''} with this tag`
+            : 'Try a different tag or browse all clashes'}
         </p>
-      </div>
-
-      {/* Share toast */}
-      {showShareToast && (
-        <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-secondary text-white px-4 py-2 rounded-full shadow-lg z-50">
-          Link copied!
-        </div>
-      )}
-
-      {/* ClashForm component */}
-      <ClashForm
-        user={user}
-        forceOpenForm={forceOpenForm}
-        onFormOpened={onFormOpened}
-        onClashCreated={handleClashCreated}
-      />
-
-      {/* Sort dropdown and options */}
-      <div className="p-8 flex bg-bgashwhite justify-between items-center border-t border-muted mt-6">
-        <h2 className="text-body text-secondary flex items-center gap-2">
-          🔥 Highlighted Clashes
-        </h2>
-        <div className="relative" ref={sortMenuRef}>
-          <button 
-            className="flex items-center space-x-1 text-caption text-mutedDark hover:text-secondary"
-            onClick={toggleSortDropdown}
-            title="Filter clashes"
-          >
-            <span>Filter by:</span>
-            <span className="font-medium text-secondary">
-              {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
-            </span>
-            <span className="text-xs">▼</span>
-          </button>
-          {showSortDropdown && (
-            <div className="absolute right-0 mt-1 bg-white rounded-md shadow-lg z-20 w-36">
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("all")}
-              >
-              ⚔️ All
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("hot")}
-              >
-              🤯 Hot
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("new")}
-              >
-               ⚡ New
-              </button>
-              <button
-                className="block w-full text-left px-4 py-2 text-sm text-secondary hover:bg-muted25"
-                onClick={() => handleSortOptionChange("finished")}
-              >
-                ⏰ Finished
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Clash list */}
@@ -358,7 +202,7 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
                 className="w-40 h-40 mb-4 opacity-80"
               />
               <div className="text-label text-mutedDark mb-2">
-                It's a little quiet here. How about launching the very first clash?
+                No clashes found with this tag
               </div>
             </div>
           )
@@ -372,7 +216,7 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
         </div>
       )}
 
-      {/* Loading indicator with enhanced feedback */}
+      {/* Loading indicator */}
       {(hasMore || allItemsLoaded) && (
         <div 
           ref={loaderRef} 
@@ -391,4 +235,4 @@ const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
   );
 };
 
-export default ClashFeed;
+export default TagResults;

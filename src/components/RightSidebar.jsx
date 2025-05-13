@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import debounce from "lodash/debounce";
+import { useNavigate } from "react-router-dom";
 
 const MAX_RECENT_SEARCHES = 5;
 
@@ -18,7 +19,8 @@ const getTagColor = (tag) => {
   return TAG_COLORS[tag] || TAG_COLORS.default;
 };
 
-const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
+const RightSidebar = ({ user, setUser }) => {
+  const navigate = useNavigate();
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [topTags, setTopTags] = useState([]);
@@ -70,7 +72,7 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
 
   const handleRecentSearchClick = (query) => {
     setSearchQuery(query);
-    onSearch(query);
+    navigate(`/search?q=${encodeURIComponent(query)}`);
     setShowRecentSearches(false);
   };
 
@@ -95,7 +97,7 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                onSearch(searchQuery);
+                navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
                 if (searchQuery.trim().length >= 3) {
                   setRecentSearches(prev => {
                     const newSearches = [searchQuery, ...prev.filter(s => s !== searchQuery)].slice(0, MAX_RECENT_SEARCHES);
@@ -154,16 +156,13 @@ const RightSidebar = ({ onTagClick, selectedTag, user, setUser, onSearch }) => {
             topTags.map(({ tag, count }) => (
               <button
                 key={tag}
-                onClick={() => onTagClick(selectedTag === tag ? null : tag)}
+                onClick={() => navigate(`/tag/${encodeURIComponent(tag)}`)}
                 className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-caption hover:shadow-md hover:bg-opacity-75 transition-colors ${
-                  selectedTag === tag 
-                    ? 'bg-accent text-white' 
-                    : getTagColor(tag)
+                  getTagColor(tag)
                 }`}
                 title={`${count} clashes`}
               >
                 {tag}
-                {selectedTag === tag && <span className="ml-1">✖</span>}
               </button>
             ))
           )}
