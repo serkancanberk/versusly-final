@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaThumbsUp, FaComment, FaTag } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 export default function ClashDetails({ clashId }) {
   const [clash, setClash] = useState(null);
@@ -7,7 +8,8 @@ export default function ClashDetails({ clashId }) {
   const [error, setError] = useState(null);
   const [selectedSide, setSelectedSide] = useState(null);
   const [argumentText, setArgumentText] = useState('');
-  const isGuest = false; // Temporary placeholder; later can be based on user context or props
+  const { user } = useAuth();
+  const isGuest = !user;
 
   useEffect(() => {
     // Only fetch if we have a clashId

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { sanitizeInput } from "../utils/gptUtils.js";
+import { useAuth } from "../context/AuthContext";
 
 const ClashForm = ({ 
-  user, 
   forceOpenForm, 
   onFormOpened, 
   onClashCreated,
@@ -25,6 +25,7 @@ const ClashForm = ({
   const [tagInput, setTagInput] = useState("");
   const [aiLoadingField, setAiLoadingField] = useState(null);
   const [pendingClashData, setPendingClashData] = useState(null);
+  const { user } = useAuth();
   const isLoggedIn = Boolean(user);
 
   // Side title states

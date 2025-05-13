@@ -3,9 +3,11 @@ import { useParams } from "react-router-dom";
 import NoResultsIllustration from '../assets/no-results-illustration.png';
 import ClashCard from "./ClashCard";
 import getStatusLabel from "../utils/statusLabel";
+import { useAuth } from "../context/AuthContext";
 
-const TagResults = ({ user }) => {
+const TagResults = ({ tag }) => {
   const { tagName } = useParams();
+  const { user } = useAuth();
   const [allClashes, setAllClashes] = useState([]);
   const [filteredClashes, setFilteredClashes] = useState([]);
   const [visibleClashes, setVisibleClashes] = useState([]);

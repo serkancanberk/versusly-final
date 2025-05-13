@@ -1,12 +1,13 @@
 const fetchedClashCache = new Set();
 import React, { useState, useRef, useEffect } from "react";
 import { toast } from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
 
 export default function ReactionPanel({
   clashId,
-  user,
   initialReactions
 }) {
+  const { user } = useAuth();
   const isLoggedIn = Boolean(user && user._id);
   const menuRef = useRef(null);
   const containerRef = useRef(null);

@@ -3,11 +3,13 @@ import { useLocation } from "react-router-dom";
 import NoResultsIllustration from '../assets/no-results-illustration.png';
 import ClashCard from "./ClashCard";
 import getStatusLabel from "../utils/statusLabel";
+import { useAuth } from "../context/AuthContext";
 
-const SearchResults = ({ user }) => {
+const SearchResults = () => {
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const searchQuery = searchParams.get('q') || '';
+  const { user } = useAuth();
 
   const [allClashes, setAllClashes] = useState([]);
   const [filteredClashes, setFilteredClashes] = useState([]);

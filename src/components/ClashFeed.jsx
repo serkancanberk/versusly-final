@@ -4,9 +4,11 @@ import ClashCard from "./ClashCard";
 import ClashForm from "./ClashForm";
 import { useNavigate } from "react-router-dom";
 import getStatusLabel from "../utils/statusLabel";
+import { useAuth } from "../context/AuthContext";
 
-const ClashFeed = ({ user, forceOpenForm, onFormOpened }) => {
+const ClashFeed = ({ forceOpenForm, onFormOpened }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [allClashes, setAllClashes] = useState([]); // Store all clashes
   const [filteredClashes, setFilteredClashes] = useState([]); // Store filtered clashes
   const [visibleClashes, setVisibleClashes] = useState([]); // Store visible clashes for pagination

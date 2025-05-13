@@ -1,7 +1,10 @@
 import React from "react";
+import { useAuth } from "../context/AuthContext";
 
-const NavigationSidebar = ({ user }) => {
+const NavigationSidebar = () => {
+  const { user } = useAuth();
   const isLoggedIn = Boolean(user);
+  
   return (
     <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0 overflow-hidden">
       {/* Logo Bölümü */}

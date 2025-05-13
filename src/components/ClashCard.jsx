@@ -12,6 +12,7 @@ import ClashImageBanner from "./ClashImageBanner";
 import { useDropdownMenus } from "../hooks/useDropdownMenus";
 import { copyToClipboard } from "../utils/clipboard";
 import { getRemainingTimeMessage } from "../utils/timeUtils";
+import { useAuth } from '../context/AuthContext';
 
 export default function ClashCard({ 
   _id,
@@ -30,7 +31,8 @@ export default function ClashCard({
   onArguments,
   isDetailView = false
 }) {
-  const isLoggedIn = Boolean(user);
+  const { user: authUser } = useAuth();
+  const isLoggedIn = Boolean(authUser);
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
   
@@ -160,10 +162,10 @@ export default function ClashCard({
           <div className="flex-1 relative" ref={menuRefs.react}>
             <ReactionPanel
               clashId={_id}
-              user={user}
+              user={authUser}
               initialReactions={reactions}
               onClose={() => setActiveMenu(null)}
-              isGuest={!user || !user._id}
+              isGuest={!authUser || !authUser._id}
             />
           </div>
 

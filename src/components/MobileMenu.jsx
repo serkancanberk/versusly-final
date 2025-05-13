@@ -2,14 +2,16 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { GoogleLogin } from "@react-oauth/google";
+import { useAuth } from "../context/AuthContext";
 
-export default function MobileMenu({ isOpen, onClose, user, setUser }) {
+export default function MobileMenu({ isOpen, onClose }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [isVisible, setIsVisible] = useState(false);
   const [topTags, setTopTags] = useState([]);
   const [isLoadingTags, setIsLoadingTags] = useState(true);
   const [isClient, setIsClient] = useState(false);
   const navigate = useNavigate();
+  const { user, setUser, logout } = useAuth();
 
   useEffect(() => {
     setIsClient(true);
@@ -79,17 +81,9 @@ export default function MobileMenu({ isOpen, onClose, user, setUser }) {
 
   // Handle logout
   const handleLogout = async () => {
-    try {
-      await fetch("http://localhost:8080/api/auth/logout", {
-        method: "POST",
-        credentials: "include"
-      });
-      setUser(null);
-      onClose();
-      navigate("/");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    await logout();
+    onClose();
+    navigate("/");
   };
 
   if (!isVisible && !isOpen) return null;

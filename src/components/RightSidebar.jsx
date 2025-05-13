@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { GoogleLogin } from "@react-oauth/google";
 import debounce from "lodash/debounce";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 const MAX_RECENT_SEARCHES = 5;
 
@@ -19,8 +20,9 @@ const getTagColor = (tag) => {
   return TAG_COLORS[tag] || TAG_COLORS.default;
 };
 
-const RightSidebar = ({ user, setUser }) => {
+const RightSidebar = () => {
   const navigate = useNavigate();
+  const { user, setUser, logout } = useAuth();
   const [isClient, setIsClient] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [topTags, setTopTags] = useState([]);
@@ -83,7 +85,7 @@ const RightSidebar = ({ user, setUser }) => {
   };
 
   return (
-    <div className="p-4 pl-6 pr-4 flex flex-col h-full">
+    <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0 overflow-hidden">
       {/* Top Combat Arenas */}
       <div className="mt-16 flex-grow">
         <h2 className="text-subheading text-secondary mb-4">🛡️ Find Tough Clashes</h2>
@@ -202,13 +204,8 @@ const RightSidebar = ({ user, setUser }) => {
             </div>
             <button
               onClick={() => {
-                fetch("http://localhost:8080/api/auth/logout", {
-                  method: "POST",
-                  credentials: "include"
-                }).finally(() => {
-                  setUser(null);
-                  window.location.href = "/";
-                });
+                logout();
+                window.location.href = "/";
               }}
               className="w-full text-center py-2 mt-3 bg-muted25/75 text-mutedDark text-label rounded-md hover:bg-muted25 hover:scale-105 active:scale-95 transition transform"
             >
