@@ -1,30 +1,30 @@
-
-
 import React from 'react';
 import { extractSideLabelsFromTitle } from '../utils/parseSides';
 
-const ClashVotingBar = ({ clash }) => {
+const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDistribution }) => {
   const { sideA, sideB } = extractSideLabelsFromTitle(clash?.vs_title || '');
+  const voteDistribution = propVoteDistribution || clash?.voteDistribution || {};
+  const votes = propVotes || clash?.votes || {};
 
   const voteData = [
     {
       label: sideA,
-      percent: clash?.voteDistribution?.sideA ?? 0,
-      count: clash?.votes?.sideA ?? 0,
+      percent: voteDistribution.sideA ?? 0,
+      count: votes.sideA ?? 0,
       color: 'bg-blue-500',
       textColor: 'text-blue-600',
     },
     {
       label: 'Neutral',
-      percent: clash?.voteDistribution?.neutral ?? 0,
-      count: clash?.votes?.neutral ?? 0,
+      percent: voteDistribution.neutral ?? 0,
+      count: votes.neutral ?? 0,
       color: 'bg-gray-400',
       textColor: 'text-gray-600',
     },
     {
       label: sideB,
-      percent: clash?.voteDistribution?.sideB ?? 0,
-      count: clash?.votes?.sideB ?? 0,
+      percent: voteDistribution.sideB ?? 0,
+      count: votes.sideB ?? 0,
       color: 'bg-red-500',
       textColor: 'text-red-600',
     },

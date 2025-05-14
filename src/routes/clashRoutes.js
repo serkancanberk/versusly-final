@@ -9,6 +9,7 @@ import {
 } from '../controllers/clashController.js';
 import authenticateUser from "../middleware/authMiddleware.js";
 import getStatusLabel from '../utils/statusLabel.js';
+import mongoose from 'mongoose';
 
 // NOTE: Ensure the Clash model includes a properly defined `tags` field with default value and validation.
 // Example (in Clash.js):
@@ -233,5 +234,86 @@ router.post('/evaluate', authenticateUser, async (req, res) => {
 
 // Get clashes by tag
 router.get('/tag/:tagName', getClashesByTag);
+
+// Add a new entry to a clash
+router.post('/:id/entries', authenticateUser, async (req, res) => {
+  try {
+    const { text, side } = req.body;
+    const clashId = req.params.id;
+
+    console.log('Received entry submission:', { text, side, clashId });
+
+    // Input validation
+    if (!text || !text.trim()) {
+      return res.status(400).json({ message: "Text is required and cannot be empty" });
+    }
+
+    // Validate side value
+    const validSides = ['for', 'against', 'neutral'];
+    if (!validSides.includes(side)) {
+      console.error('Invalid side value received:', side);
+      return res.status(400).json({ 
+        message: "Invalid side value. Must be one of: for, against, or neutral",
+        receivedSide: side
+      });
+    }
+
+    const clash = await Clash.findById(clashId);
+    if (!clash) {
+      return res.status(404).json({ message: "Clash not found" });
+    }
+
+    // Create new entry
+    const newEntry = {
+      _id: new mongoose.Types.ObjectId(),
+      text: text.trim(),
+      side: side,
+      user: req.user._id,
+      createdAt: new Date()
+    };
+
+    console.log('Creating new entry:', newEntry);
+
+    // Add to Clash_arguments array
+    clash.Clash_arguments.push(newEntry);
+
+    // Check if user has already voted
+    const hasVoted = clash.votes.some(vote => vote.userId.toString() === req.user._id.toString());
+    
+    // If user hasn't voted yet, add their vote
+    if (!hasVoted) {
+      clash.votes.push({
+        userId: req.user._id,
+        side: side,
+        timestamp: new Date()
+      });
+    }
+
+    await clash.save();
+    console.log('Entry saved successfully');
+
+    // Return both the new entry and vote information
+    res.status(201).json({ 
+      _id: newEntry._id,
+      message: "Entry added successfully",
+      voteRecorded: !hasVoted,
+      vote: !hasVoted ? {
+        side: side,
+        timestamp: new Date()
+      } : null
+    });
+  } catch (error) {
+    console.error('Error adding entry:', error);
+    // Send more detailed error information in development
+    const errorResponse = {
+      message: error.message,
+      ...(process.env.NODE_ENV === 'development' && {
+        stack: error.stack,
+        details: error
+      })
+    };
+    res.status(500).json(errorResponse);
+  }
+});
 
 export default router; // clashRoutes'u dışarıya aktarıyoruz

@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 
 export default function ArgumentsList({ arguments: args }) {
@@ -13,9 +11,9 @@ export default function ArgumentsList({ arguments: args }) {
               <p className="text-gray-800 dark:text-muted">{arg.text}</p>
               <div className="mt-2 text-sm text-gray-500 dark:text-muted-dark">
                 <span>
-                  {arg.side === 'sideA'
+                  {arg.side === 'for'
                     ? 'For'
-                    : arg.side === 'sideB'
+                    : arg.side === 'against'
                     ? 'Against'
                     : 'Neutral'}
                 </span>

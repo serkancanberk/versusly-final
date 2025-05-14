@@ -17,7 +17,7 @@ const clashSchema = new mongoose.Schema({
       },
       side: {
         type: String,
-        enum: ['for', 'against'],
+        enum: ['for', 'against', 'neutral'],
         required: true
       },
       createdAt: {
@@ -26,6 +26,27 @@ const clashSchema = new mongoose.Schema({
       }
     }
   ],
+  sideLabels: {
+    type: {
+      sideA: {
+        label: String,
+        value: String
+      },
+      sideB: {
+        label: String,
+        value: String
+      },
+      neutral: {
+        label: String,
+        value: String
+      }
+    },
+    default: {
+      sideA: { label: "Side A", value: "for" },
+      sideB: { label: "Side B", value: "against" },
+      neutral: { label: "Neutral", value: "neutral" }
+    }
+  },
   side: String,
   tags: {
     type: [String],
@@ -41,6 +62,22 @@ const clashSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
   },
+  votes: [{
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    side: {
+      type: String,
+      enum: ['for', 'against', 'neutral'],
+      required: true
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   expires_at: Date,
   status: String,
 }, { timestamps: true });

@@ -11,11 +11,32 @@ export const createClash = async (req, res) => {
       expires_at,
       duration,
       reactions = {},
-      status = "active"
+      status = "active",
+      sideLabels,
+      side
     } = req.body;
 
     const rawTags = Array.isArray(tags) ? tags : [];
     const formattedTags = rawTags.map(tag => tag.trim()).filter(tag => tag.length > 0);
+
+    // Validate and format sideLabels if provided
+    let formattedSideLabels;
+    if (sideLabels) {
+      formattedSideLabels = {
+        sideA: {
+          label: sideLabels.sideA?.label || "Side A",
+          value: "for"
+        },
+        sideB: {
+          label: sideLabels.sideB?.label || "Side B",
+          value: "against"
+        },
+        neutral: {
+          label: sideLabels.neutral?.label || "Neutral",
+          value: "neutral"
+        }
+      };
+    }
 
     const newClash = new Clash({
       vs_title,
@@ -27,7 +48,27 @@ export const createClash = async (req, res) => {
       reactions,
       status,
       creator: req.user._id,
+      sideLabels: formattedSideLabels
     });
+
+    // Convert side value and add initial vote if side is provided
+    if (side && req.user) {
+      let sideValue = null;
+      
+      // Convert 'A'/'B' to 'for'/'against'
+      if (side === 'A') sideValue = 'for';
+      else if (side === 'B') sideValue = 'against';
+      else sideValue = 'neutral';
+
+      // Only push vote if we have a valid side value
+      if (sideValue) {
+        newClash.votes.push({
+          userId: req.user._id,
+          side: sideValue,
+          timestamp: new Date()
+        });
+      }
+    }
 
     console.log("Formatted Tags:", formattedTags);
     console.log("New Clash Object Before Save:", newClash);
@@ -37,7 +78,9 @@ export const createClash = async (req, res) => {
     console.log("Saved clash:", newClash);
 
     // Populate the creator field before sending the response
-    const populatedClash = await Clash.findById(newClash._id).populate("creator", "name picture email");
+    const populatedClash = await Clash.findById(newClash._id)
+      .populate("creator", "name picture email")
+      .populate("votes.userId", "name picture email");
     console.log("Final clash object sent in response:", populatedClash);
     res.status(201).json(populatedClash);
   } catch (error) {

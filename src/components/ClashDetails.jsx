@@ -59,7 +59,13 @@ const ArgumentsList = ({ arguments: args }) => (
           <div key={arg._id} className="bg-white p-4 rounded-lg shadow">
             <p className="text-gray-800">{arg.text}</p>
             <div className="mt-2 text-sm text-gray-500">
-              <span>{arg.side === 'for' ? 'For' : 'Against'}</span>
+              <span>
+                {arg.side === 'for'
+                  ? 'For'
+                  : arg.side === 'against'
+                  ? 'Against'
+                  : 'Neutral'}
+              </span>
               <span className="mx-2">•</span>
               <span>{new Date(arg.createdAt).toLocaleDateString()}</span>
             </div>
@@ -96,38 +102,38 @@ export default function ClashDetails({ clashId }) {
   const [error, setError] = useState(null);
   const { user } = useAuth();
 
+  const fetchClash = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await fetch(`/api/clashes/${clashId}`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const argumentCount = Array.isArray(data.Clash_arguments) ? data.Clash_arguments.length : 0;
+      data.statusLabel = getStatusLabel({
+        createdAt: data.createdAt,
+        expires_at: data.expires_at,
+        argumentCount,
+        reactions: data.reactions
+      });
+      setClash(data);
+    } catch (err) {
+      setError(err.message || 'Failed to fetch clash details');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!clashId) {
       setLoading(false);
       return;
     }
-
-    const fetchClash = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`/api/clashes/${clashId}`);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const data = await response.json();
-        const argumentCount = Array.isArray(data.Clash_arguments) ? data.Clash_arguments.length : 0;
-        data.statusLabel = getStatusLabel({
-          createdAt: data.createdAt,
-          expires_at: data.expires_at,
-          argumentCount,
-          reactions: data.reactions
-        });
-        setClash(data);
-      } catch (err) {
-        setError(err.message || 'Failed to fetch clash details');
-      } finally {
-        setLoading(false);
-      }
-    };
 
     fetchClash();
 
@@ -177,14 +183,82 @@ export default function ClashDetails({ clashId }) {
           expires_at={clash.expires_at}
           tags={clash.tags}
         />
-        <ClashVotingBar clash={clash} />
+
+        {/* Calculate vote distribution */}
+        {(() => {
+          const voteArray = clash?.votes ?? [];
+          
+          const sideAcount = voteArray.filter(v => v.side === 'for').length;
+          const sideBcount = voteArray.filter(v => v.side === 'against').length;
+          const neutralCount = voteArray.filter(v => v.side === 'neutral').length;
+          
+          const totalVotes = sideAcount + sideBcount + neutralCount;
+          
+          const voteDistribution = {
+            sideA: totalVotes > 0 ? Math.round((sideAcount / totalVotes) * 100) : 0,
+            sideB: totalVotes > 0 ? Math.round((sideBcount / totalVotes) * 100) : 0,
+            neutral: totalVotes > 0 ? Math.round((neutralCount / totalVotes) * 100) : 0
+          };
+          
+          const voteCounts = {
+            sideA: sideAcount,
+            sideB: sideBcount,
+            neutral: neutralCount
+          };
+          
+          return (
+            <ClashVotingBar 
+              votes={voteCounts}
+              voteDistribution={voteDistribution}
+            />
+          );
+        })()}
         
         {user && (
           <ArgumentSubmissionForm
             clashId={clash._id}
-            sideLabels={extractSideLabelsFromTitle(clash.vs_title)}
-            onArgumentSubmitted={() => {
-              // optionally re-fetch or update local state later
+            sideLabels={clash.sideLabels || {
+              sideA: { label: 'Side A', value: 'for' },
+              sideB: { label: 'Side B', value: 'against' },
+              neutral: { label: 'Neutral', value: 'neutral' }
+            }}
+            onArgumentSubmitted={(newArgument) => {
+              setClash(prevClash => {
+                const updatedArguments = [...(prevClash.Clash_arguments || []), newArgument];
+
+                const updatedVotes = newArgument.voteRecorded
+                  ? [...(prevClash.votes || []), {
+                      userId: user._id,
+                      side: newArgument.side,
+                      timestamp: new Date()
+                    }]
+                  : prevClash.votes;
+
+                const sideAcount = updatedVotes.filter(v => v.side === 'for').length;
+                const sideBcount = updatedVotes.filter(v => v.side === 'against').length;
+                const neutralCount = updatedVotes.filter(v => v.side === 'neutral').length;
+                const totalVotes = sideAcount + sideBcount + neutralCount;
+
+                const voteDistribution = {
+                  sideA: totalVotes > 0 ? Math.round((sideAcount / totalVotes) * 100) : 0,
+                  sideB: totalVotes > 0 ? Math.round((sideBcount / totalVotes) * 100) : 0,
+                  neutral: totalVotes > 0 ? Math.round((neutralCount / totalVotes) * 100) : 0
+                };
+
+                const voteCounts = {
+                  sideA: sideAcount,
+                  sideB: sideBcount,
+                  neutral: neutralCount
+                };
+
+                return {
+                  ...prevClash,
+                  Clash_arguments: updatedArguments,
+                  votes: updatedVotes,
+                  voteDistribution,
+                  voteCounts
+                };
+              });
             }}
           />
         )}

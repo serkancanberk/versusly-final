@@ -41,26 +41,26 @@ const ClashForm = ({
     const savedStatement = localStorage.getItem("vs_statement");
     const savedSide = localStorage.getItem("vs_side");
     const savedTags = localStorage.getItem("vs_tags");
+    const savedSideATitle = localStorage.getItem("vs_sideA_title");
+    const savedSideBTitle = localStorage.getItem("vs_sideB_title");
 
     if (savedTitle) setTitleValue(savedTitle);
     if (savedStatement) setStatement(savedStatement);
-    if (savedTags) {
-      try {
-        const parsedTags = JSON.parse(savedTags);
-        if (Array.isArray(parsedTags)) setTags(parsedTags);
-      } catch (e) {
-        console.error("Failed to parse saved tags:", e);
-      }
-    }
+    if (savedSide) setSelectedSide(savedSide);
+    if (savedTags) setTags(JSON.parse(savedTags));
+    if (savedSideATitle) setSideATitle(savedSideATitle);
+    if (savedSideBTitle) setSideBTitle(savedSideBTitle);
   }, []);
 
   // Save form data to localStorage
   useEffect(() => {
     localStorage.setItem("vs_title", titleValue);
     localStorage.setItem("vs_statement", statement);
-    localStorage.setItem("vs_side", selectedSide || "");
+    localStorage.setItem("vs_side", selectedSide);
     localStorage.setItem("vs_tags", JSON.stringify(tags));
-  }, [titleValue, statement, selectedSide, tags]);
+    localStorage.setItem("vs_sideA_title", sideATitle);
+    localStorage.setItem("vs_sideB_title", sideBTitle);
+  }, [titleValue, statement, selectedSide, tags, sideATitle, sideBTitle]);
 
   // Handle forceOpenForm prop
   useEffect(() => {
@@ -168,59 +168,26 @@ const ClashForm = ({
   // Release clash
   const handleReleaseClash = async () => {
     if (!isLoggedIn) return;
-
     if (!titleValue.trim()) {
       setTitleError("Please enter a title for your clash!");
       setTimeout(() => setTitleError(""), 3000);
-      const titleInput = document.getElementById("title-vs-input");
-      if (titleInput) {
-        titleInput.classList.add("ring-2", "ring-accent", "animate-pulse");
-        setTimeout(() => {
-          titleInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
-        }, 1000);
-      }
       return;
     }
-
     if (!selectedSide) {
-      setShowSideError(true);
-      setTimeout(() => setShowSideError(false), 3000);
-      const sideButtons = document.querySelectorAll(".pick-your-side-button");
-      sideButtons.forEach(button => {
-        button.classList.add("ring-2", "ring-accent", "animate-pulse");
-        setTimeout(() => {
-          button.classList.remove("ring-2", "ring-accent", "animate-pulse");
-        }, 1000);
-      });
+      setTitleError("Please pick a side!");
+      setTimeout(() => setTitleError(""), 3000);
       return;
     }
-
     if (!statement.trim()) {
       setStatementError("Please add your bold statement!");
       setTimeout(() => setStatementError(""), 3000);
-      const statementInput = document.getElementById("statement-input");
-      if (statementInput) {
-        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
-        setTimeout(() => {
-          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
-        }, 1000);
-      }
       return;
     }
-
     if (statement.trim().length < 25) {
       setStatementError("Your statement is too short. Please write at least 25 characters.");
       setTimeout(() => setStatementError(""), 3000);
-      const statementInput = document.getElementById("statement-input");
-      if (statementInput) {
-        statementInput.classList.add("ring-2", "ring-accent", "animate-pulse");
-        setTimeout(() => {
-          statementInput.classList.remove("ring-2", "ring-accent", "animate-pulse");
-        }, 1000);
-      }
       return;
     }
-
     setTitleError("");
     setStatementError("");
 
@@ -238,7 +205,12 @@ const ClashForm = ({
       side: selectedSide,
       tags: tags,
       creator: user?._id,
-      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000)
+      expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      sideLabels: {
+        sideA: { label: sideATitle, value: "for" },
+        sideB: { label: sideBTitle, value: "against" },
+        neutral: { label: "Neutral", value: "neutral" }
+      }
     };
 
     try {
