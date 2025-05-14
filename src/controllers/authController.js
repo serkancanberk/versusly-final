@@ -12,9 +12,11 @@ export const handleGoogleLogin = async (req, res) => {
   try {
     const { token } = req.body;
     if (!token) {
+      console.log('No token provided in request body');
       return res.status(400).json({ message: "ID token is required" });
     }
 
+    console.log('Verifying Google ID token...');
     // Verify the Google ID token
     const ticket = await client.verifyIdToken({
       idToken: token,
@@ -22,12 +24,16 @@ export const handleGoogleLogin = async (req, res) => {
     });
     const payload = ticket.getPayload();
     const { email, name, picture, sub: googleId } = payload;
+    console.log('Google token verified for user:', email);
 
     // Find or create user
     let user = await User.findOne({ googleId });
     if (!user) {
+      console.log('Creating new user for:', email);
       user = new User({ googleId, email, name, picture });
       await user.save();
+    } else {
+      console.log('Found existing user:', email);
     }
 
     // Generate application JWT
@@ -38,12 +44,27 @@ export const handleGoogleLogin = async (req, res) => {
     );
 
     // Set HTTP-only cookie with JWT token
-    res.cookie('auth_token', jwtToken, {
+    const cookieOptions = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production' && req.hostname !== 'localhost', // Disable secure cookies for localhost
-      sameSite: 'lax', // Helps with CSRF protection
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
-    });
+      path: '/',
+    };
+
+    // In development, don't set domain explicitly
+    if (process.env.NODE_ENV === 'production') {
+      cookieOptions.domain = process.env.COOKIE_DOMAIN;
+    }
+
+    console.log('Setting auth cookie with options:', cookieOptions);
+    res.cookie('auth_token', jwtToken, cookieOptions);
+
+    // Add CORS headers explicitly
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL 
+      : 'http://localhost:5173');
 
     // Respond with user data (but no token in the response body)
     return res.status(200).json({
@@ -57,6 +78,11 @@ export const handleGoogleLogin = async (req, res) => {
     });
   } catch (error) {
     console.error("Google Auth Error:", error);
+    console.error("Error details:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return res.status(401).json({ message: "Authentication failed" });
   }
 };

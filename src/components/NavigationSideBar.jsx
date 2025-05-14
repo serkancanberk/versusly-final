@@ -17,7 +17,7 @@ const NavigationSidebar = () => {
       <nav className="flex-1">
         <ul className="space-y-8">
           <li>
-            <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+            <a href="/" className="flex items-center text-secondary hover:text-alert pl-2">
               <span className="inline-block w-6 mr-3">💣</span>
               <span className="text-body">Feed</span>
             </a>

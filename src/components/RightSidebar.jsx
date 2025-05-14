@@ -85,7 +85,7 @@ const RightSidebar = () => {
   };
 
   return (
-    <div className="h-screen flex flex-col pt-16 pb-5 pl-0 pr-0 overflow-hidden">
+    <div className="h-screen flex flex-col pt-16 pb-5 pl-6 pr-0 overflow-hidden">
       {/* Top Combat Arenas */}
       <div className="mt-16 flex-grow">
         <h2 className="text-subheading text-secondary mb-4">🛡️ Find Tough Clashes</h2>

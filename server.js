@@ -46,18 +46,37 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Configure CORS - Ensure proper cookie sharing between frontend and backend
 const corsOptions = {
-  origin: "http://localhost:5173",
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : "http://localhost:5173",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: true, // This is critical for cookies
   exposedHeaders: ["set-cookie"],
+  maxAge: 86400, // 24 hours
 };
+
+// Add cookie parser before CORS
+app.use(cookieParser());
+
+// Add detailed logging for cookie and CORS issues
+app.use((req, res, next) => {
+  console.log('Request details:', {
+    path: req.path,
+    method: req.method,
+    origin: req.headers.origin,
+    cookies: req.cookies,
+    headers: {
+      cookie: req.headers.cookie,
+      authorization: req.headers.authorization
+    }
+  });
+  next();
+});
+
 app.use(cors(corsOptions));
 // Enable preflight across all routes
 app.options('*', cors(corsOptions));
-
-// Parse cookies from incoming requests
-app.use(cookieParser());
 
 app.use(express.json());
 

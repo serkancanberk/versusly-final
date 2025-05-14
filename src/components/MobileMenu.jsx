@@ -212,7 +212,7 @@ export default function MobileMenu({ isOpen, onClose }) {
       <nav className="flex-1 overflow-auto">
         <ul className="divide-y divide-muted dark:divide-gray-700">
           <li>
-            <Link to="/feed" onClick={onClose} className="flex items-center p-4 text-secondary dark:text-gray-300 hover:bg-muted25 dark:hover:bg-gray-800 transition-colors duration-200">
+            <Link to="/" onClick={onClose} className="flex items-center p-4 text-secondary dark:text-gray-300 hover:bg-muted25 dark:hover:bg-gray-800 transition-colors duration-200">
               <span className="inline-block w-8 mr-3 text-center">💣</span>
               <span className="text-body">Feed</span>
             </Link>
