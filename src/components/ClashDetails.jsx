@@ -1,18 +1,102 @@
 import React, { useState, useEffect } from 'react';
 import { FaUser, FaThumbsUp, FaComment, FaTag } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import ClashAuthorInfo from './ClashAuthorInfo';
+import ReactionPanel from './ReactionPanel';
+import ClashArgumentsDisplay from './ClashArgumentsDisplay';
+import ClashShare from './ClashShare';
+import ClashDropdownMenu from './ClashDropdownMenu';
+import ClashContentPreview from './ClashContentPreview';
+import getStatusLabel from '../utils/statusLabel';
+import { extractSideLabelsFromTitle } from '../utils/parseSides';
+import ClashVotingBar from './ClashVotingBar';
+import ArgumentSubmissionForm from './ArgumentSubmissionForm';
+
+// Component stubs - these will be implemented as separate components later
+const ClashImageBanner = () => (
+  <div className="w-full h-64 bg-gray-200 rounded-lg mb-6">
+    <div className="w-full h-full flex items-center justify-center text-gray-500">
+      Clash Banner Image
+    </div>
+  </div>
+);
+
+const UserMetaInfo = ({ clash, argumentCount }) => (
+  <div className="flex items-center justify-between mb-6">
+    <ClashAuthorInfo creator={clash?.creator} createdAt={clash?.createdAt} />
+    <div className="flex items-center space-x-4">
+      <ReactionPanel clashId={clash._id} reactions={clash.reactions} />
+      <ClashArgumentsDisplay count={argumentCount} />
+      <ClashShare clashId={clash._id} />
+      <ClashDropdownMenu clashId={clash._id} />
+    </div>
+  </div>
+);
+
+const ClashMetadata = ({ clash }) => (
+  <div className="mb-8">
+    <h1 className="text-3xl font-bold mb-4">{clash?.vs_title || 'Clash Title'}</h1>
+    <p className="text-lg text-gray-700 mb-4">{clash?.vs_statement || 'Main statement about the clash...'}</p>
+    <div className="flex flex-wrap gap-2">
+      {(clash?.tags || ['tag1', 'tag2']).map((tag, index) => (
+        <span
+          key={index}
+          className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm"
+        >
+          {tag}
+        </span>
+      ))}
+    </div>
+  </div>
+);
+
+const ArgumentsList = ({ arguments: args }) => (
+  <div className="mb-8">
+    <h2 className="text-xl font-semibold mb-4">Arguments</h2>
+    {args?.length > 0 ? (
+      <div className="space-y-4">
+        {args.map((arg) => (
+          <div key={arg._id} className="bg-white p-4 rounded-lg shadow">
+            <p className="text-gray-800">{arg.text}</p>
+            <div className="mt-2 text-sm text-gray-500">
+              <span>{arg.side === 'for' ? 'For' : 'Against'}</span>
+              <span className="mx-2">•</span>
+              <span>{new Date(arg.createdAt).toLocaleDateString()}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-500">No arguments yet. Be the first to share your thoughts!</p>
+    )}
+  </div>
+);
+
+const SimilarClashes = ({ clashes }) => (
+  <div className="mb-8">
+    <h2 className="text-xl font-semibold mb-4">Similar Clashes</h2>
+    <div className="space-y-4">
+      {(clashes || Array(3).fill(null)).map((clash, index) => (
+        <div
+          key={index}
+          className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+        >
+          <h3 className="font-semibold mb-1">{clash?.title || `Similar Clash ${index + 1}`}</h3>
+          <p className="text-sm text-gray-600 mb-2">{clash?.statement || 'This is a sample clash statement...'}</p>
+          <p className="text-sm text-gray-500">{clash?.preview || 'Preview of the clash content...'}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export default function ClashDetails({ clashId }) {
   const [clash, setClash] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedSide, setSelectedSide] = useState(null);
-  const [argumentText, setArgumentText] = useState('');
   const { user } = useAuth();
-  const isGuest = !user;
 
   useEffect(() => {
-    // Only fetch if we have a clashId
     if (!clashId) {
       setLoading(false);
       return;
@@ -30,6 +114,13 @@ export default function ClashDetails({ clashId }) {
         }
         
         const data = await response.json();
+        const argumentCount = Array.isArray(data.Clash_arguments) ? data.Clash_arguments.length : 0;
+        data.statusLabel = getStatusLabel({
+          createdAt: data.createdAt,
+          expires_at: data.expires_at,
+          argumentCount,
+          reactions: data.reactions
+        });
         setClash(data);
       } catch (err) {
         setError(err.message || 'Failed to fetch clash details');
@@ -40,49 +131,11 @@ export default function ClashDetails({ clashId }) {
 
     fetchClash();
 
-    // Cleanup function
     return () => {
       setClash(null);
       setError(null);
     };
-  }, [clashId]); // Only re-run if clashId changes
-
-  const handleSubmitArgument = async () => {
-    if (!selectedSide || !argumentText.trim()) {
-      alert("Please select a side and write your argument.");
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/clashes/${clashId}/Clash_arguments`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          side: selectedSide,
-          content: argumentText,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit argument");
-      }
-
-      const newArgument = await response.json();
-
-      // Optimistically update local clash state
-      setClash((prev) => ({
-        ...prev,
-        Clash_arguments: [newArgument, ...(prev.Clash_arguments || [])],
-      }));
-
-      setArgumentText("");
-      setSelectedSide(null);
-    } catch (err) {
-      alert(err.message || "An error occurred while submitting your argument.");
-    }
-  };
+  }, [clashId]);
 
   if (!clashId) {
     return <div className="p-4 text-secondary">No clash selected</div>;
@@ -114,217 +167,31 @@ export default function ClashDetails({ clashId }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Left Column - Main Content */}
-          <div className="lg:w-2/3">
-            {/* Header Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={clash.creator.avatar}
-                    alt={clash.creator.username}
-                    className="w-10 h-10 rounded-full"
-                  />
-                  <div>
-                    <p className="font-semibold">{clash.creator.username}</p>
-                    <p className="text-sm text-gray-500">{clash.creator.timestamp}</p>
-                  </div>
-                </div>
-              </div>
-              <div className="text-center mb-6">
-                <h1 className="text-3xl font-bold mb-2">{clash.vs_title}</h1>
-                <p className="text-lg text-gray-600">{clash.vs_statement}</p>
-              </div>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {clash.tags.map((tag, index) => (
-                  <span
-                    key={index}
-                    className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center"
-                  >
-                    <FaTag className="mr-1" /> {tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Voting Bar */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <div className="flex justify-between mb-2">
-                <span className="text-sm font-medium">Side A ({clash?.voteDistribution?.sideA ?? 0}%)</span>
-                <span className="text-sm font-medium">Neutral ({clash?.voteDistribution?.neutral ?? 0}%)</span>
-                <span className="text-sm font-medium">Side B ({clash?.voteDistribution?.sideB ?? 0}%)</span>
-              </div>
-              <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-                <div className="flex h-full">
-                  <div
-                    className="bg-blue-500"
-                    style={{ width: `${clash?.voteDistribution?.sideA ?? 0}%` }}
-                  />
-                  <div
-                    className="bg-gray-400"
-                    style={{ width: `${clash?.voteDistribution?.neutral ?? 0}%` }}
-                  />
-                  <div
-                    className="bg-red-500"
-                    style={{ width: `${clash?.voteDistribution?.sideB ?? 0}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Add Argument Section */}
-            <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-              <h2 className="text-xl font-semibold mb-4">Drop Your Take</h2>
-              <div className="flex gap-4 mb-4">
-                <button
-                  onClick={() => setSelectedSide('A')}
-                  className={`flex-1 py-2 px-4 rounded-lg ${
-                    selectedSide === 'A'
-                      ? 'bg-blue-500 text-white'
-                      : 'bg-blue-100 text-blue-800'
-                  }`}
-                >
-                  Side A
-                </button>
-                <button
-                  onClick={() => setSelectedSide('neutral')}
-                  className={`flex-1 py-2 px-4 rounded-lg ${
-                    selectedSide === 'neutral'
-                      ? 'bg-gray-500 text-white'
-                      : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  Neutral
-                </button>
-                <button
-                  onClick={() => setSelectedSide('B')}
-                  className={`flex-1 py-2 px-4 rounded-lg ${
-                    selectedSide === 'B'
-                      ? 'bg-red-500 text-white'
-                      : 'bg-red-100 text-red-800'
-                  }`}
-                >
-                  Side B
-                </button>
-              </div>
-              <textarea
-                value={argumentText}
-                onChange={(e) => setArgumentText(e.target.value)}
-                placeholder="Write your argument here..."
-                className="w-full h-32 p-3 border rounded-lg mb-4"
-              />
-              <button
-                onClick={handleSubmitArgument}
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
-              >
-                Add Argument
-              </button>
-            </div>
-
-            {/* Clash Arguments Section */}
-            <div className="mt-8">
-              <h2 className="text-xl font-semibold mb-4">Arguments</h2>
-              {clash.Clash_arguments.length > 0 ? (
-                <div className="space-y-4">
-                  {clash.Clash_arguments.map((argument) => (
-                    <div key={argument._id} className="bg-white p-4 rounded-lg shadow">
-                      <p className="text-gray-800">{argument.text}</p>
-                      <div className="mt-2 text-sm text-gray-500">
-                        <span>{argument.side === 'for' ? 'For' : 'Against'}</span>
-                        <span className="mx-2">•</span>
-                        <span>{new Date(argument.createdAt).toLocaleDateString()}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-gray-500 mb-4">No arguments yet. Be the first to share your thoughts!</p>
-              )}
-            </div>
-
-            {/* Similar Clashes Section */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Similar Clashes</h2>
-              <div className="space-y-4">
-                {Array.isArray(clash.similarClashes) && clash.similarClashes.map((clash) => (
-                  <div
-                    key={clash.id}
-                    className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                  >
-                    <h3 className="font-semibold mb-1">{clash.title}</h3>
-                    <p className="text-sm text-gray-600 mb-2">{clash.statement}</p>
-                    <p className="text-sm text-gray-500">{clash.preview}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Sidebar */}
-          <div className="lg:w-1/3">
-            {isGuest ? (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 className="text-xl font-semibold mb-4">Join the Debate</h2>
-                <p className="text-gray-600 mb-4">
-                  Sign in to participate in discussions and share your thoughts.
-                </p>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700">
-                  Sign In
-                </button>
-                <button className="w-full bg-gray-100 text-gray-800 py-2 rounded-lg hover:bg-gray-200">
-                  Create Account
-                </button>
-              </div>
-            ) : (
-              <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-                <div className="flex items-center space-x-4 mb-6">
-                  <img
-                    src="https://via.placeholder.com/60"
-                    alt="User Avatar"
-                    className="w-16 h-16 rounded-full"
-                  />
-                  <div>
-                    <h3 className="font-semibold">Username</h3>
-                    <p className="text-sm text-gray-500">Member since 2024</p>
-                  </div>
-                </div>
-                <button className="w-full bg-blue-600 text-white py-2 rounded-lg mb-4 hover:bg-blue-700">
-                  Create New Clash
-                </button>
-              </div>
-            )}
-
-            {/* Trending Clashes */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-xl font-semibold mb-4">Trending Clashes</h2>
-              <div className="space-y-4">
-                {[1, 2, 3].map((item) => (
-                  <div
-                    key={item}
-                    className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-                  >
-                    <h3 className="font-semibold mb-1">Trending Clash {item}</h3>
-                    <p className="text-sm text-gray-600">
-                      This is a sample trending clash description...
-                    </p>
-                    <div className="flex items-center mt-2 text-sm text-gray-500">
-                      <span className="flex items-center mr-4">
-                        <FaThumbsUp className="mr-1" /> 123
-                      </span>
-                      <span className="flex items-center">
-                        <FaComment className="mr-1" /> 45
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="max-w-5xl mx-auto px-4 py-8">
+        <ClashImageBanner />
+        <UserMetaInfo clash={clash} argumentCount={clash?.Clash_arguments?.length || 0} />
+        <ClashContentPreview
+          title={clash.vs_title}
+          statement={clash.vs_statement}
+          statusLabel={clash.statusLabel || "active"}
+          expires_at={clash.expires_at}
+          tags={clash.tags}
+        />
+        <ClashVotingBar clash={clash} />
+        
+        {user && (
+          <ArgumentSubmissionForm
+            clashId={clash._id}
+            sideLabels={extractSideLabelsFromTitle(clash.vs_title)}
+            onArgumentSubmitted={() => {
+              // optionally re-fetch or update local state later
+            }}
+          />
+        )}
+        
+        <ArgumentsList arguments={clash.Clash_arguments} />
+        <SimilarClashes clashes={clash.similarClashes} />
       </div>
     </div>
   );
-} 
+}

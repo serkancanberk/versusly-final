@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import NoResultsIllustration from '../assets/no-results-illustration.png';
 import ClashCard from "./ClashCard";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { extractSideLabelsFromTitle } from "../utils/parseSides";
 
 const ClashFeedOriginal = ({ user, forceOpenForm, onFormOpened }) => {
   const [statement, setStatement] = useState("");
@@ -192,26 +194,33 @@ const ClashFeedOriginal = ({ user, forceOpenForm, onFormOpened }) => {
               <div className="mb-4">
                 <label className="block text-caption text-mutedDark mb-2">Pick your side</label>
                 <div className="flex gap-4">
-                  <button
-                    className={`flex-1 py-3 rounded-2xl border transition-colors ${
-                      selectedSide === "A"
-                        ? "bg-accent text-bgwhite border-accent"
-                        : "bg-bgwhite text-secondary border-muted hover:bg-muted25"
-                    }`}
-                    onClick={() => setSelectedSide("A")}
-                  >
-                    Side A
-                  </button>
-                  <button
-                    className={`flex-1 py-3 rounded-2xl border transition-colors ${
-                      selectedSide === "B"
-                        ? "bg-accent text-bgwhite border-accent"
-                        : "bg-bgwhite text-secondary border-muted hover:bg-muted25"
-                    }`}
-                    onClick={() => setSelectedSide("B")}
-                  >
-                    Side B
-                  </button>
+                  {(() => {
+                    const { sideA, sideB } = extractSideLabelsFromTitle(titleValue);
+                    return (
+                      <>
+                        <button
+                          className={`flex-1 py-3 rounded-2xl border transition-colors ${
+                            selectedSide === "A"
+                              ? "bg-accent text-bgwhite border-accent"
+                              : "bg-bgwhite text-secondary border-muted hover:bg-muted25"
+                          }`}
+                          onClick={() => setSelectedSide("A")}
+                        >
+                          {sideA}
+                        </button>
+                        <button
+                          className={`flex-1 py-3 rounded-2xl border transition-colors ${
+                            selectedSide === "B"
+                              ? "bg-accent text-bgwhite border-accent"
+                              : "bg-bgwhite text-secondary border-muted hover:bg-muted25"
+                          }`}
+                          onClick={() => setSelectedSide("B")}
+                        >
+                          {sideB}
+                        </button>
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

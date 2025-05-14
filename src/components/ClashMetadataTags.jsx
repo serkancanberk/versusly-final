@@ -2,6 +2,16 @@ import React from "react";
 import getStatusLabel from "../utils/statusLabel";
 
 export default function ClashMetadataTags({ statusLabel, expires_at, tags }) {
+  // Add warning when statusLabel is missing
+  if (!statusLabel) {
+    console.warn("ClashMetadataTags: statusLabel prop is missing");
+  }
+
+  // Safe fallback for statusLabel
+  const safeLabel = statusLabel
+    ? statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)
+    : "Active";
+
   // Calculate time left in hours and minutes
   const getTimeMessage = () => {
     const now = new Date();
@@ -20,7 +30,7 @@ export default function ClashMetadataTags({ statusLabel, expires_at, tags }) {
   return (
     <div className="flex flex-wrap gap-2 text-caption text-secondary">
       <span className="bg-accent/80 text-bgwhite rounded-full px-2 py-0.5">
-        {statusLabel.charAt(0).toUpperCase() + statusLabel.slice(1)}
+        {safeLabel}
       </span>
       <span className="bg-muted25 rounded-full px-2 py-0.5">{getTimeMessage()}</span>
       {tags?.slice(0, 3).map((tag, index) => (

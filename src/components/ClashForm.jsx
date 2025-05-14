@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { sanitizeInput } from "../utils/gptUtils.js";
 import { useAuth } from "../context/AuthContext";
+import { extractSideLabelsFromTitle } from "../utils/parseSides";
 
 const ClashForm = ({ 
   forceOpenForm, 
@@ -143,103 +144,16 @@ const ClashForm = ({
 
   // Update side titles
   const updateSideTitles = (text) => {
-    if (!text || text.trim() === "") {
-      setSideATitle("Side A");
-      setSideBTitle("Side B");
-      setFullSideATitle("Side A");
-      setFullSideBTitle("Side B");
-      return;
-    }
-
-    const formatSideTitle = (title) => {
-      const fullTitle = title.trim();
-      const displayTitle = fullTitle.length > 10 ? fullTitle.substring(0, 10) + '…' : fullTitle;
-      return { fullTitle, displayTitle };
+    const { sideA, sideB } = extractSideLabelsFromTitle(text);
+    
+    const formatDisplayTitle = (title) => {
+      return title.length > 10 ? title.substring(0, 10) + '…' : title;
     };
 
-    const extractMeaningfulParts = (text) => {
-      const words = text.trim().split(/\s+/);
-      
-      if (words.length >= 4) {
-        return {
-          sideA: words.slice(0, 2).join(" "),
-          sideB: words.slice(-2).join(" ")
-        };
-      } else if (words.length === 3) {
-        return {
-          sideA: words[0],
-          sideB: words.slice(1).join(" ")
-        };
-      } else if (words.length === 2) {
-        return {
-          sideA: words[0],
-          sideB: words[1]
-        };
-      } else {
-        return {
-          sideA: words[0],
-          sideB: words[0]
-        };
-      }
-    };
-
-    const updateSides = (sideA, sideB) => {
-      const { fullTitle: fullA, displayTitle: displayA } = formatSideTitle(sideA);
-      const { fullTitle: fullB, displayTitle: displayB } = formatSideTitle(sideB);
-      
-      setFullSideATitle(fullA);
-      setFullSideBTitle(fullB);
-      setSideATitle(displayA);
-      setSideBTitle(displayB);
-    };
-
-    const dividers = [
-      ' vs ', ' vs. ', ' - ', ' or ', ' karşı ', ' against ',
-      ' veya ', ' mi yoksa ', ' versus ', ' vs ', ' vs. ',
-      ' versus ', ' against ', ' versus ', ' vs ', ' vs. '
-    ];
-    
-    let foundMatch = false;
-    
-    for (const divider of dividers) {
-      if (text.toLowerCase().includes(divider)) {
-        const parts = text.split(divider);
-        if (parts.length >= 2) {
-          const rawA = parts[0].trim();
-          const rawB = parts[1].trim();
-          
-          const cleanA = rawA.replace(/['"]/g, '').replace(/[.,;:!?]$/, '');
-          const cleanB = rawB.replace(/['"]/g, '').replace(/[.,;:!?]$/, '');
-          
-          updateSides(cleanA, cleanB);
-          foundMatch = true;
-          break;
-        }
-      }
-    }
-    
-    if (!foundMatch && text.includes("tercih ederim")) {
-      const parts = text.split("tercih ederim");
-      if (parts.length > 0) {
-        const preferParts = parts[0].split("'");
-        if (preferParts.length >= 3) {
-          const rawA = preferParts[0].trim();
-          const rawB = preferParts[2].trim()
-            .replace(/ye$/, '')
-            .replace(/ya$/, '')
-            .replace(/ye$/, '')
-            .replace(/ya$/, '');
-          
-          updateSides(rawA, rawB);
-          foundMatch = true;
-        }
-      }
-    }
-    
-    if (!foundMatch) {
-      const { sideA, sideB } = extractMeaningfulParts(text);
-      updateSides(sideA, sideB);
-    }
+    setFullSideATitle(sideA);
+    setFullSideBTitle(sideB);
+    setSideATitle(formatDisplayTitle(sideA));
+    setSideBTitle(formatDisplayTitle(sideB));
   };
 
   // Start new clash
