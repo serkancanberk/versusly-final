@@ -36,7 +36,10 @@ export default function ArgumentsList({ arguments: args, sideLabels }) {
       <h2 className="text-xl font-semibold mb-4">Arguments</h2>
       {args?.length > 0 ? (
         <div className="space-y-4">
-          {[...args].reverse().map((arg) => (
+          {[...args].reverse().map((arg) => {
+            // Log the user object before rendering the img
+            console.log("👤 Argument user object:", arg.user);
+            return (
             <div 
               key={arg._id} 
               className="bg-white dark:bg-secondary p-4 rounded-lg shadow border border-muted/50 hover:shadow-md hover:border-muted transition-all duration-200"
@@ -73,7 +76,8 @@ export default function ArgumentsList({ arguments: args, sideLabels }) {
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       ) : (
         <p className="text-gray-500 dark:text-muted-dark">

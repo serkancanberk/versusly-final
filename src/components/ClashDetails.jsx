@@ -207,12 +207,22 @@ export default function ClashDetails({ clashId }) {
             }}
             onArgumentSubmitted={(newArgument) => {
               setClash(prevClash => {
-                const updatedArguments = [...(prevClash.Clash_arguments || []), newArgument];
+                // Ensure the new argument has the correct structure
+                const formattedArgument = {
+                  ...newArgument,
+                  user: newArgument.user || {
+                    _id: user._id,
+                    name: user.name,
+                    picture: user.picture
+                  }
+                };
+
+                const updatedArguments = [...(prevClash.Clash_arguments || []), formattedArgument];
 
                 const updatedVotes = newArgument.voteRecorded
                   ? [...(prevClash.votes || []), {
                       userId: user._id,
-                      side: newArgument.side,
+                      side: newArgument.side.value,
                       timestamp: new Date()
                     }]
                   : prevClash.votes;

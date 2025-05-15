@@ -42,13 +42,8 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
 
       const result = await response.json();
       if (onArgumentSubmitted) {
-        onArgumentSubmitted({
-          ...payload,
-          _id: result._id,
-          createdAt: new Date().toISOString(),
-          voteRecorded: result.voteRecorded,
-          side: payload.side
-        });
+        // Pass the complete newArgument object from the backend response
+        onArgumentSubmitted(result.newArgument);
       }
 
       if (result.voteRecorded) {

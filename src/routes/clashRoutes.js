@@ -197,12 +197,20 @@ router.post('/:id/Clash_arguments', authenticateUser, async (req, res) => {
     clash.Clash_arguments.push(newArgument);
     await clash.save();
 
-    // Populate user data before sending response
-    await clash.populate('Clash_arguments.user', 'name picture');
-    
-    res.status(200).json({ 
-      message: "Argument added", 
-      Clash_arguments: clash.Clash_arguments 
+    // Retrieve the last added argument and populate its user field
+    const latestArgument = clash.Clash_arguments[clash.Clash_arguments.length - 1];
+    const populatedArgument = await Clash.findOne(
+      { _id: clash._id, "Clash_arguments._id": latestArgument._id },
+      { "Clash_arguments.$": 1 }
+    ).populate("Clash_arguments.user", "name picture");
+
+    if (!populatedArgument || !populatedArgument.Clash_arguments?.[0]) {
+      return res.status(500).json({ message: "Failed to retrieve populated argument" });
+    }
+
+    res.status(201).json({
+      message: "Argument added",
+      newArgument: populatedArgument.Clash_arguments[0]
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -325,7 +333,10 @@ router.post('/:id/entries', authenticateUser, async (req, res) => {
 
     await clash.save();
     // Populate the newly added argument's user info and label
-    await clash.populate('Clash_arguments.user', 'name picture');
+    await clash.populate({
+      path: 'Clash_arguments.user',
+      select: 'name picture'
+    });
     const updatedArgument = clash.Clash_arguments.find(arg => arg._id.equals(newEntry._id));
     if (updatedArgument && typeof updatedArgument.side === 'object') {
       const sideValue = updatedArgument.side.value;
