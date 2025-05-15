@@ -210,6 +210,13 @@ export default function ClashDetails({ clashId }) {
             <ClashVotingBar 
               votes={voteCounts}
               voteDistribution={voteDistribution}
+              sideLabels={
+                clash.sideLabels || {
+                  sideA: { label: 'Side A', value: 'for' },
+                  sideB: { label: 'Side B', value: 'against' },
+                  neutral: { label: 'Neutral', value: 'neutral' }
+                }
+              }
             />
           );
         })()}

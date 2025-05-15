@@ -1,53 +1,83 @@
 import React from 'react';
-import { extractSideLabelsFromTitle } from '../utils/parseSides';
 
-const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDistribution }) => {
-  const { sideA, sideB } = extractSideLabelsFromTitle(clash?.vs_title || '');
+const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDistribution, sideLabels }) => {
+  const sideA_label = sideLabels?.sideA?.label || clash?.sideLabels?.sideA?.label || 'Side A';
+  const sideB_label = sideLabels?.sideB?.label || clash?.sideLabels?.sideB?.label || 'Side B';
+  const neutral_label = sideLabels?.neutral?.label || clash?.sideLabels?.neutral?.label || 'Neutral';
+
   const voteDistribution = propVoteDistribution || clash?.voteDistribution || {};
   const votes = propVotes || clash?.votes || {};
 
-  const voteData = [
+  // Calculate minimum width (2% of total width)
+  const MIN_SEGMENT_WIDTH = 2;
+  
+  // Adjust percentages to ensure minimum width while maintaining proportions
+  const adjustPercentages = (data) => {
+    const totalNonZero = data.reduce((sum, item) => sum + (item.percent > 0 ? item.percent : 0), 0);
+    const zeroCount = data.filter(item => item.percent === 0).length;
+    
+    if (zeroCount === 0) return data; // No adjustment needed if all segments have votes
+    
+    const minWidthTotal = zeroCount * MIN_SEGMENT_WIDTH;
+    const remainingWidth = 100 - minWidthTotal;
+    
+    return data.map(item => ({
+      ...item,
+      adjustedPercent: item.percent === 0 
+        ? MIN_SEGMENT_WIDTH 
+        : (item.percent / totalNonZero) * remainingWidth
+    }));
+  };
+
+  const voteData = adjustPercentages([
     {
-      label: sideA,
+      label: sideA_label,
       percent: voteDistribution.sideA ?? 0,
       count: votes.sideA ?? 0,
-      color: 'bg-blue-500',
-      textColor: 'text-blue-600',
+      bgColor: '#FB8000',
+      textColor: '#FCFCFC',
     },
     {
-      label: 'Neutral',
+      label: neutral_label,
       percent: voteDistribution.neutral ?? 0,
       count: votes.neutral ?? 0,
-      color: 'bg-gray-400',
-      textColor: 'text-gray-600',
+      bgColor: '#9CA3AF', // Tailwind gray-400 hex
+      textColor: '#4B5563', // Tailwind gray-600 hex
     },
     {
-      label: sideB,
+      label: sideB_label,
       percent: voteDistribution.sideB ?? 0,
       count: votes.sideB ?? 0,
-      color: 'bg-red-500',
-      textColor: 'text-red-600',
+      bgColor: '#EF4444', // Tailwind red-500 hex
+      textColor: '#DC2626', // Tailwind red-600 hex
     },
-  ];
+  ]);
 
   return (
     <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4">Vote Distribution</h2>
-      <div className="space-y-4">
+      <h2 className="text-xl font-semibold mb-4 mt-8">Vote Distribution</h2>
+
+      {/* Main bar */}
+      <div className="relative flex h-14 w-full rounded-full overflow-hidden border border-gray-300 shadow-sm">
         {voteData.map((item, index) => (
-          <div key={index}>
-            <div className="flex justify-between mb-1">
-              <span className="text-sm font-medium">{item.label}</span>
-              <div className="text-sm">
-                <span className={`font-semibold ${item.textColor}`}>{item.percent}%</span>
-                <span className="text-gray-600 ml-2">({item.count} votes)</span>
+          <div
+            key={index}
+            className="flex items-center justify-center text-[12px] sm:text-sm font-medium px-1"
+            style={{
+              width: `${item.adjustedPercent || item.percent}%`,
+              minWidth: item.percent === 0 ? '64px' : '40px',
+              backgroundColor: item.percent === 0
+                ? `${item.bgColor}40`
+                : item.bgColor,
+              color: item.textColor,
+              opacity: item.percent === 0 ? 0.25 : 1,
+            }}
+          >
+            <div className="text-center leading-tight">
+              <div className="truncate">{item.label}</div>
+              <div className="text-xs font-semibold text-gray-800">
+                {item.percent}% ({item.count})
               </div>
-            </div>
-            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full ${item.color} transition-all duration-300`}
-                style={{ width: `${item.percent}%` }}
-              />
             </div>
           </div>
         ))}
