@@ -246,7 +246,10 @@ export default function ClashDetails({ clashId }) {
           />
         )}
         
-        <ArgumentsList arguments={clash.Clash_arguments || []} />
+        <ArgumentsList 
+          arguments={clash.Clash_arguments || []} 
+          sideLabels={clash.sideLabels}
+        />
         <SimilarClashes clashes={clash.similarClashes} />
       </div>
     </div>

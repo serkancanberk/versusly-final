@@ -185,6 +185,28 @@ export const getClashById = async (req, res) => {
     // Return the clash object with live reactions field
     const obj = clash.toObject();
     obj.reactions = formattedTotals;
+    // Enhance each argument's side field with its corresponding label from sideLabels,
+    // handling both string and object formats for backward compatibility.
+    if (obj.Clash_arguments && obj.sideLabels) {
+      obj.Clash_arguments = obj.Clash_arguments.map(arg => {
+        let rawSide = arg.side;
+        let value = typeof rawSide === 'string' ? rawSide : rawSide?.value;
+        let label = typeof rawSide === 'string' ? null : rawSide?.label;
+
+        // Fix: properly match string or object 'value' with sideLabels
+        if (!label || label === "Unknown") {
+          if (value === "for") label = obj.sideLabels.sideA?.label || "Side A";
+          else if (value === "against") label = obj.sideLabels.sideB?.label || "Side B";
+          else if (value === "neutral") label = obj.sideLabels.neutral?.label || "Neutral";
+          else label = "Unknown";
+        }
+
+        return {
+          ...arg,
+          side: { value, label }
+        };
+      });
+    }
     res.status(200).json(obj);
   } catch (error) {
     console.error("Error fetching clash by ID:", error);

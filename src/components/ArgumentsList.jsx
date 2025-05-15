@@ -1,11 +1,36 @@
 import React, { useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 
-export default function ArgumentsList({ arguments: args }) {
+export default function ArgumentsList({ arguments: args, sideLabels }) {
   useEffect(() => {
     console.log("🔥 ArgumentsList mounted with props:", args);
-  }, [args]);
+    console.log("🔍 sideLabels received:", sideLabels);
+  }, [args, sideLabels]);
   console.log("🧪 args length:", args?.length, "first arg:", args?.[0]);
+
+  const getSideLabel = (side) => {
+    console.log("🎯 Processing side:", side);
+    
+    // If side is null/undefined, return Unknown
+    if (!side) return "Unknown";
+    
+    // If side is an object with a label, use it directly
+    if (typeof side === "object" && side.label) {
+      return side.label;
+    }
+    
+    // Get the value to check against sideLabels
+    const sideValue = typeof side === "object" ? side.value : side;
+    
+    // Map the value to the appropriate label from sideLabels
+    if (sideValue === "for") return sideLabels?.sideA?.label || "For";
+    if (sideValue === "against") return sideLabels?.sideB?.label || "Against";
+    if (sideValue === "neutral") return sideLabels?.neutral?.label || "Neutral";
+    
+    // Fallback
+    return "Unknown";
+  };
+
   return (
     <div className="mb-8">
       <h2 className="text-xl font-semibold mb-4">Arguments</h2>
@@ -34,18 +59,14 @@ export default function ArgumentsList({ arguments: args }) {
                   <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-muted-dark">
                     <span
                       className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                        arg.side === 'for'
+                        (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'for'
                           ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
-                          : arg.side === 'against'
+                          : (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'against'
                           ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
                           : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
                       }`}
                     >
-                      {arg.side === 'for'
-                        ? 'For'
-                        : arg.side === 'against'
-                        ? 'Against'
-                        : 'Neutral'}
+                      {getSideLabel(arg.side)}
                     </span>
                   </div>
                   <p className="text-sm text-gray-800 dark:text-muted mt-1">{arg.text}</p>

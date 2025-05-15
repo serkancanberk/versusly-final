@@ -177,11 +177,33 @@ router.post('/:id/Clash_arguments', authenticateUser, async (req, res) => {
       return res.status(404).json({ message: "Clash not found" });
     }
 
+    // Get the appropriate label from sideLabels
+    let label = "Unknown";
+    if (side === "for") label = clash.sideLabels?.sideA?.label || "For";
+    else if (side === "against") label = clash.sideLabels?.sideB?.label || "Against";
+    else if (side === "neutral") label = clash.sideLabels?.neutral?.label || "Neutral";
+
     const user = req.user._id;
-    clash.Clash_arguments.push({ user, text, side, createdAt: new Date() });
+    const newArgument = {
+      user,
+      text,
+      side: {
+        value: side,
+        label: label
+      },
+      createdAt: new Date()
+    };
+
+    clash.Clash_arguments.push(newArgument);
     await clash.save();
 
-    res.status(200).json({ message: "Argument added", Clash_arguments: clash.Clash_arguments });
+    // Populate user data before sending response
+    await clash.populate('Clash_arguments.user', 'name picture');
+    
+    res.status(200).json({ 
+      message: "Argument added", 
+      Clash_arguments: clash.Clash_arguments 
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -264,10 +286,22 @@ router.post('/:id/entries', authenticateUser, async (req, res) => {
     }
 
     // Create new entry
+    let label;
+    if (side === 'for') {
+      label = clash.sideLabels?.sideA?.label;
+    } else if (side === 'against') {
+      label = clash.sideLabels?.sideB?.label;
+    } else if (side === 'neutral') {
+      label = clash.sideLabels?.neutral?.label;
+    }
+
     const newEntry = {
       _id: new mongoose.Types.ObjectId(),
       text: text.trim(),
-      side: side,
+      side: {
+        value: side,
+        label: label || side
+      },
       user: req.user._id,
       createdAt: new Date()
     };
@@ -290,12 +324,20 @@ router.post('/:id/entries', authenticateUser, async (req, res) => {
     }
 
     await clash.save();
-    console.log('Entry saved successfully');
-
-    // Return both the new entry and vote information
+    // Populate the newly added argument's user info and label
+    await clash.populate('Clash_arguments.user', 'name picture');
+    const updatedArgument = clash.Clash_arguments.find(arg => arg._id.equals(newEntry._id));
+    if (updatedArgument && typeof updatedArgument.side === 'object') {
+      const sideValue = updatedArgument.side.value;
+      let label = "Unknown";
+      if (sideValue === 'for') label = clash.sideLabels?.sideA?.label || "For";
+      else if (sideValue === 'against') label = clash.sideLabels?.sideB?.label || "Against";
+      else if (sideValue === 'neutral') label = clash.sideLabels?.neutral?.label || "Neutral";
+      updatedArgument.side.label = label;
+    }
     res.status(201).json({ 
-      _id: newEntry._id,
       message: "Entry added successfully",
+      newArgument: updatedArgument,
       voteRecorded: !hasVoted,
       vote: !hasVoted ? {
         side: side,

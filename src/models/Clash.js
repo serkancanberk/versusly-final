@@ -16,9 +16,15 @@ const clashSchema = new mongoose.Schema({
         required: true
       },
       side: {
-        type: String,
-        enum: ['for', 'against', 'neutral'],
-        required: true
+        value: {
+          type: String,
+          enum: ['for', 'against', 'neutral'],
+          required: true
+        },
+        label: {
+          type: String,
+          required: true
+        }
       },
       createdAt: {
         type: Date,
