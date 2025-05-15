@@ -70,73 +70,67 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
   };
 
   const getButtonStyles = (side) => {
-    const baseStyles = 'flex-1 py-2 px-4 rounded-lg';
     const isSelected = selectedSide === sideLabels[side].value;
-    
-    switch (side) {
-      case 'sideA':
-        return `${baseStyles} ${
-          isSelected
-            ? 'bg-blue-500 text-white'
-            : 'bg-blue-100 text-blue-800 hover:bg-blue-200'
-        }`;
-      case 'sideB':
-        return `${baseStyles} ${
-          isSelected
-            ? 'bg-red-500 text-white'
-            : 'bg-red-100 text-red-800 hover:bg-red-200'
-        }`;
-      case 'neutral':
-        return `${baseStyles} ${
-          isSelected
-            ? 'bg-gray-500 text-white'
-            : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
-        }`;
-      default:
-        return baseStyles;
-    }
+    return `pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
+      isSelected
+        ? 'border-accent bg-accent text-white'
+        : 'border-accent text-secondary border-opacity-25 border-dashed'
+    }`;
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
       <h2 className="text-xl font-semibold mb-4">Drop Your Take</h2>
+      <h3 className="text-caption font-medium mb-2 text-mutedDark">Pick your side</h3>
       <div className="flex gap-4 mb-4">
         {!sideLabels ? (
           <p className="text-red-500">Side labels not available.</p>
         ) : (
-          Object.entries(sideLabels).map(([key, { label, value }]) => (
-            <button
-              key={key}
-              className={getButtonStyles(key)}
-              onClick={() => setSelectedSide(value)}
-            >
-              {label}
-            </button>
-          ))
+          ['sideA', 'neutral', 'sideB'].map((key) => {
+            const { label, value } = sideLabels[key] || {};
+            if (!label || !value) return null;
+
+            return (
+              <button
+                key={key}
+                className={getButtonStyles(key)}
+                onClick={() => setSelectedSide(value)}
+              >
+                {label}
+              </button>
+            );
+          })
         )}
       </div>
+      <label 
+        className={`block text-caption mb-1 transition-opacity duration-300 text-mutedDark ${!selectedSide ? 'text-alert animate-pulse' : ''}`}
+      >
+        Your Argument
+      </label>
       <textarea
         placeholder="Write your argument here..."
-        className="w-full h-32 p-3 border rounded-lg mb-4"
+        className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-y max-h-40 px-3 py-2 pr-10"
         value={text}
         onChange={(e) => setText(e.target.value)}
       />
       {voteFeedback && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-2 rounded mb-4">
-          {voteFeedback}
+        <div className="flex items-center gap-2 bg-muted-25 border border-accent border-opacity-25 rounded-2xl text-caption text-accent text-opacity-75 px-4 py-3 mt-4">
+         {voteFeedback}
         </div>
       )}
-      <button
-        className={`w-full text-white py-2 rounded-lg transition ${
-          selectedSide && text.trim()
-            ? 'bg-blue-600 hover:bg-blue-700'
-            : 'bg-gray-300 cursor-not-allowed'
-        }`}
-        disabled={!selectedSide || !text.trim() || loading}
-        onClick={handleSubmit}
-      >
-        {loading ? 'Submitting...' : 'Add Argument'}
-      </button>
+      <div className="flex justify-end mt-4">
+        <button
+          className={`px-6 py-4 bg-accent text-bgashwhite text-label rounded-2xl ${
+            selectedSide && text.trim() && !loading
+              ? 'hover:bg-opacity-90'
+              : 'opacity-50 cursor-not-allowed'
+          }`}
+          disabled={!selectedSide || !text.trim() || loading}
+          onClick={handleSubmit}
+        >
+          {loading ? 'Submitting...' : 'Add Your Argument'}
+        </button>
+      </div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import ClashArgumentsDisplay from './ClashArgumentsDisplay';
 import ClashShare from './ClashShare';
 import ClashDropdownMenu from './ClashDropdownMenu';
 import ClashContentPreview from './ClashContentPreview';
+import ArgumentsList from './ArgumentsList';
 import getStatusLabel from '../utils/statusLabel';
 import { extractSideLabelsFromTitle } from '../utils/parseSides';
 import ClashVotingBar from './ClashVotingBar';
@@ -50,33 +51,6 @@ const ClashMetadata = ({ clash }) => (
   </div>
 );
 
-const ArgumentsList = ({ arguments: args }) => (
-  <div className="mb-8">
-    <h2 className="text-xl font-semibold mb-4">Arguments</h2>
-    {args?.length > 0 ? (
-      <div className="space-y-4">
-        {args.map((arg) => (
-          <div key={arg._id} className="bg-white p-4 rounded-lg shadow">
-            <p className="text-gray-800">{arg.text}</p>
-            <div className="mt-2 text-sm text-gray-500">
-              <span>
-                {arg.side === 'for'
-                  ? 'For'
-                  : arg.side === 'against'
-                  ? 'Against'
-                  : 'Neutral'}
-              </span>
-              <span className="mx-2">•</span>
-              <span>{new Date(arg.createdAt).toLocaleDateString()}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    ) : (
-      <p className="text-gray-500">No arguments yet. Be the first to share your thoughts!</p>
-    )}
-  </div>
-);
 
 const SimilarClashes = ({ clashes }) => (
   <div className="mb-8">
@@ -122,6 +96,8 @@ export default function ClashDetails({ clashId }) {
         reactions: data.reactions
       });
       setClash(data);
+      console.log("🧩 ClashDetails fetched clash:", data);
+      console.log("🧪 First Argument Sample:", data.Clash_arguments?.[0]);
     } catch (err) {
       setError(err.message || 'Failed to fetch clash details');
     } finally {
@@ -270,7 +246,7 @@ export default function ClashDetails({ clashId }) {
           />
         )}
         
-        <ArgumentsList arguments={clash.Clash_arguments} />
+        <ArgumentsList arguments={clash.Clash_arguments || []} />
         <SimilarClashes clashes={clash.similarClashes} />
       </div>
     </div>

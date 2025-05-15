@@ -143,8 +143,14 @@ export const getClashes = async (req, res) => {
 export const getClashById = async (req, res) => {
   try {
     const { id } = req.params;
-    // Fetch the clash and populate creator
-    const clash = await Clash.findById(id).populate("creator", "name picture email");
+    // Fetch the clash and populate creator and arguments' user data
+    const clash = await Clash.findById(id)
+      .populate("creator", "name picture email")
+      .populate({
+        path: "Clash_arguments.user",
+        select: "name picture"
+      });
+    
     if (!clash) {
       return res.status(404).json({ message: "Clash not found" });
     }

@@ -5,8 +5,12 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
   const sideB_label = sideLabels?.sideB?.label || clash?.sideLabels?.sideB?.label || 'Side B';
   const neutral_label = sideLabels?.neutral?.label || clash?.sideLabels?.neutral?.label || 'Neutral';
 
-  const voteDistribution = propVoteDistribution || clash?.voteDistribution || {};
-  const votes = propVotes || clash?.votes || {};
+  const isTestMode = false; // toggle this to false to disable mock data
+  const mockVoteDistribution = { sideA: 32, neutral: 10, sideB: 58 };
+  const mockVotes = { sideA: 8, neutral: 3, sideB: 14 };
+
+  const voteDistribution = isTestMode ? mockVoteDistribution : (propVoteDistribution || clash?.voteDistribution || {});
+  const votes = isTestMode ? mockVotes : (propVotes || clash?.votes || {});
 
   // Calculate minimum width (2% of total width)
   const MIN_SEGMENT_WIDTH = 2;
@@ -57,15 +61,13 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
     <div className="mb-8">
       <h2 className="text-xl font-semibold mb-4 mt-8">Vote Distribution</h2>
 
-      {/* Main bar */}
-      <div className="relative flex h-14 w-full rounded-full overflow-hidden border border-gray-300 shadow-sm">
+      {/* Three-column card layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {voteData.map((item, index) => (
           <div
             key={index}
-            className="flex items-center justify-center text-[12px] sm:text-sm font-medium px-1"
+            className="flex flex-col items-center justify-center rounded-lg shadow-sm border border-gray-200 p-4 min-h-[120px]"
             style={{
-              width: `${item.adjustedPercent || item.percent}%`,
-              minWidth: item.percent === 0 ? '64px' : '40px',
               backgroundColor: item.percent === 0
                 ? `${item.bgColor}40`
                 : item.bgColor,
@@ -73,10 +75,15 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
               opacity: item.percent === 0 ? 0.25 : 1,
             }}
           >
-            <div className="text-center leading-tight">
-              <div className="truncate">{item.label}</div>
-              <div className="text-xs font-semibold text-gray-800">
-                {item.percent}% ({item.count})
+            <div className="text-center">
+              <div className="text-base font-medium mb-2 truncate max-w-full">
+                {item.label}
+              </div>
+              <div className="text-sm font-semibold">
+                {item.percent}%
+              </div>
+              <div className="text-xs text-gray-800">
+                ({item.count} votes)
               </div>
             </div>
           </div>
