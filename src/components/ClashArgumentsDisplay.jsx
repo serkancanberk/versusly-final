@@ -5,13 +5,20 @@ export default function ClashArgumentsDisplay({
   isLoading = false,
   onHover,
   onClick,
-  buttonRef
+  buttonRef,
+  clashId
 }) {
   return (
     <button 
       className="flex items-center justify-center gap-1 text-caption text-secondary hover:text-mutedDark hover:scale-105 transition-transform hover:bg-muted25 rounded-md py-4 w-full"
       onMouseEnter={onHover}
-      onClick={onClick}
+      onClick={() => {
+        if (clashId) {
+          window.location.href = `/clash/${clashId}#arguments-section`;
+        } else if (onClick) {
+          onClick();
+        }
+      }}
       ref={buttonRef}
     >
       {isLoading ? (
@@ -28,7 +35,7 @@ export default function ClashArgumentsDisplay({
         <>
           <span>🤺</span>
           <span>
-            Args ({Clash_arguments.length}) - {Clash_arguments[Clash_arguments.length - 1]?.text?.slice(0, 15)}...
+            Args ({Clash_arguments.length}) - {Clash_arguments[0]?.text?.slice(0, 15)}...
           </span>
         </>
       )}

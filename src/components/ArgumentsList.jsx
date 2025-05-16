@@ -59,7 +59,7 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
       <h2 className="text-xl font-semibold mb-4">Arguments</h2>
       {args?.length > 0 ? (
         <div className="space-y-4">
-          {[...args].reverse().map((arg) => {
+          {args.map((arg) => {
             // Log the user object before rendering the img
             console.log("👤 Argument user object:", arg.user);
             return (

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FaUser, FaThumbsUp, FaComment, FaTag } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import ClashAuthorInfo from './ClashAuthorInfo';
 import ReactionPanel from './ReactionPanel';
 import ClashArgumentsDisplay from './ClashArgumentsDisplay';
+import { Link } from 'react-router-dom';
 import ClashShare from './ClashShare';
 import ClashDropdownMenu from './ClashDropdownMenu';
 import ClashContentPreview from './ClashContentPreview';
@@ -27,7 +28,9 @@ const UserMetaInfo = ({ clash, argumentCount }) => (
     <ClashAuthorInfo creator={clash?.creator} createdAt={clash?.createdAt} />
     <div className="flex items-center space-x-4">
       <ReactionPanel clashId={clash._id} reactions={clash.reactions} />
-      <ClashArgumentsDisplay count={argumentCount} />
+      <Link to="#arguments-section">
+        <ClashArgumentsDisplay count={argumentCount} />
+      </Link>
       <ClashShare clashId={clash._id} />
       <ClashDropdownMenu clashId={clash._id} />
     </div>
@@ -75,6 +78,40 @@ export default function ClashDetails({ clashId }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { user } = useAuth();
+  const hasScrolledRef = useRef(false);
+
+  // Modified useEffect for handling scroll to arguments section
+  useEffect(() => {
+    const scrollToArguments = () => {
+      if (window.location.hash === '#arguments-section' && !hasScrolledRef.current) {
+        const argumentsSection = document.getElementById('arguments-section');
+        if (argumentsSection) {
+          argumentsSection.scrollIntoView({ behavior: 'smooth' });
+          hasScrolledRef.current = true;
+        }
+      }
+    };
+
+    // Initial scroll attempt
+    scrollToArguments();
+
+    // Set up a MutationObserver to watch for DOM changes
+    const observer = new MutationObserver((mutations) => {
+      scrollToArguments();
+    });
+
+    // Start observing the document body for changes
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Cleanup observer on unmount
+    return () => {
+      observer.disconnect();
+      hasScrolledRef.current = false; // Reset the ref when component unmounts
+    };
+  }, []); // Remove clash dependency since we don't need to re-run on clash updates
 
   const fetchClash = async () => {
     try {
@@ -260,16 +297,18 @@ export default function ClashDetails({ clashId }) {
           />
         )}
         
-        <ArgumentsList 
-          arguments={clash.Clash_arguments || []}
-          setArguments={(newArgs) => {
-            setClash(prev => ({
-              ...prev,
-              Clash_arguments: newArgs
-            }));
-          }}
-          sideLabels={clash.sideLabels}
-        />
+        <div id="arguments-section">
+          <ArgumentsList 
+            arguments={clash.Clash_arguments || []}
+            setArguments={(newArgs) => {
+              setClash(prev => ({
+                ...prev,
+                Clash_arguments: newArgs
+              }));
+            }}
+            sideLabels={clash.sideLabels}
+          />
+        </div>
         <SimilarClashes clashes={clash.similarClashes} />
       </div>
     </div>

@@ -195,15 +195,14 @@ export default function ClashCard({
           </div>
 
           {/* Clash Arguments Button */}
-          <div className="flex-1">
+          <Link to={`/clash/${_id}#arguments-section`} className="flex-1">
             <ClashArgumentsDisplay
               Clash_arguments={latestArgs}
               isLoading={isLoadingArgs}
               onHover={handleClashArgumentsButtonHover}
-              onClick={handleClashArgumentsClick}
               buttonRef={menuRefs.Clash_arguments}
             />
-          </div>
+          </Link>
 
           {/* Share Button */}
           <div className="flex-1 relative" ref={menuRefs.share}>
