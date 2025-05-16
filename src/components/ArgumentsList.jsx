@@ -1,12 +1,35 @@
 import React, { useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from "../context/AuthContext";
 
-export default function ArgumentsList({ arguments: args, sideLabels }) {
+export default function ArgumentsList({ arguments: args = [], setArguments, sideLabels }) {
+  const { user: currentUser } = useAuth();
+
   useEffect(() => {
     console.log("🔥 ArgumentsList mounted with props:", args);
     console.log("🔍 sideLabels received:", sideLabels);
   }, [args, sideLabels]);
   console.log("🧪 args length:", args?.length, "first arg:", args?.[0]);
+
+  const handleDeleteArgument = async (argId) => {
+    try {
+      const res = await fetch(`/api/arguments/${argId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (res.ok) {
+        const updated = args.filter((arg) => arg._id !== argId);
+        setArguments(updated);
+        // The parent component will handle updating clash.Clash_arguments
+        // through the setArguments callback
+      } else {
+        console.error("Failed to delete");
+      }
+    } catch (err) {
+      console.error("Error deleting argument:", err);
+    }
+  };
 
   const getSideLabel = (side) => {
     console.log("🎯 Processing side:", side);
@@ -57,6 +80,14 @@ export default function ArgumentsList({ arguments: args, sideLabels }) {
                     </span>
                     <span className="text-xs text-muted dark:text-muted-dark">
                       {formatDistanceToNow(new Date(arg.createdAt), { addSuffix: true })}
+                      {arg.user?._id === currentUser?._id && (
+                        <button 
+                          onClick={() => handleDeleteArgument(arg._id)}
+                          className="text-xs text-red-500 hover:underline ml-2"
+                        >
+                          Delete
+                        </button>
+                      )}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-muted-dark">

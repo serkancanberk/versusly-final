@@ -231,14 +231,14 @@ export default function ReactionPanel({
           onMouseLeave={handleMouseLeave}
           ref={menuRef}
           style={menuStyle}
-          className="absolute bottom-14 bg-white rounded-xl shadow-xl p-3 z-30 flex gap-4"
+          className="absolute bottom-14 bg-white rounded-xl shadow-xl p-3 z-30 flex flex-col gap-2"
           role="menu"
           aria-label="Reaction options"
         >
           {reactionTypes.map((reaction, index) => (
             <button
               key={index}
-              className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-md transition-colors ${
+              className={`flex items-center gap-2 px-2 py-2 rounded-md transition-colors ${
                 selectedReaction?.label === reaction.label ? "bg-accent/10 shadow-sm" : "hover:bg-muted25"
               } ${(!isLoggedIn || isLoading) ? "opacity-50 cursor-not-allowed" : ""}`}
               onClick={() => handleSelect(reaction)}
@@ -247,15 +247,13 @@ export default function ReactionPanel({
               aria-pressed={selectedReaction?.label === reaction.label}
               aria-label={`${reaction.label}, ${reactions[reaction.label] || 0} votes`}
             >
-              <div className="flex flex-col items-center">
-                <span className="text-xl">{reaction.emoji}</span>
-                <span className="text-xs whitespace-nowrap">
-                  {reaction.label}
-                  <span className="ml-1 text-body text-xs font-medium">
-                    ({reactions[reaction.label] || 0})
-                  </span>
+              <span className="text-xl">{reaction.emoji}</span>
+              <span className="text-xs whitespace-nowrap">
+                {reaction.label}
+                <span className="ml-1 text-body text-xs font-medium">
+                  ({reactions[reaction.label] || 0})
                 </span>
-              </div>
+              </span>
             </button>
           ))}
         </div>

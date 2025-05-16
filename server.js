@@ -9,6 +9,7 @@ import clashRoutes from './src/routes/clashRoutes.js';
 import authRoutes from './src/routes/authRoutes.js';
 import gptRoutes from './src/routes/gptRoutes.js';
 import reactionRoutes from './src/routes/reactionRoutes.js';
+import argumentRoutes from './src/routes/argumentRoutes.js';
 import authenticateUser from './src/middleware/authMiddleware.js';
 
 const app = express();
@@ -100,6 +101,7 @@ app.use('/api/clashes', clashRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/gpt', gptRoutes);
 app.use('/api/reactions', authenticateUser, reactionRoutes);
+app.use('/api/arguments', argumentRoutes);
 
 // 404 handler
 app.use((req, res) => {

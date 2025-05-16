@@ -80,14 +80,18 @@ export default function ClashDetails({ clashId }) {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`/api/clashes/${clashId}`);
-      
+
+      const response = await fetch(`/api/clashes/${clashId}?includeArguments=false`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const data = await response.json();
+
+      // Fetch arguments separately from /api/arguments
+      const argumentsRes = await fetch(`/api/arguments?clashId=${clashId}`);
+      const argumentsData = await argumentsRes.json();
+      data.Clash_arguments = argumentsData;
+
       const argumentCount = Array.isArray(data.Clash_arguments) ? data.Clash_arguments.length : 0;
       data.statusLabel = getStatusLabel({
         createdAt: data.createdAt,
@@ -257,7 +261,13 @@ export default function ClashDetails({ clashId }) {
         )}
         
         <ArgumentsList 
-          arguments={clash.Clash_arguments || []} 
+          arguments={clash.Clash_arguments || []}
+          setArguments={(newArgs) => {
+            setClash(prev => ({
+              ...prev,
+              Clash_arguments: newArgs
+            }));
+          }}
           sideLabels={clash.sideLabels}
         />
         <SimilarClashes clashes={clash.similarClashes} />

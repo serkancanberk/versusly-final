@@ -35,6 +35,31 @@ export default function ClashCard({
   const isLoggedIn = Boolean(authUser);
   const safeTitle = vs_title || "Untitled Clash";
   const safeStatement = vs_statement || "No statement provided.";
+  const [latestArgs, setLatestArgs] = useState(Clash_arguments);
+  const [isLoadingArgs, setIsLoadingArgs] = useState(false);
+  
+  // Fetch latest arguments when component mounts
+  useEffect(() => {
+    const fetchLatestArguments = async () => {
+      try {
+        setIsLoadingArgs(true);
+        const response = await fetch(`/api/arguments?clashId=${_id}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setLatestArgs(data);
+      } catch (error) {
+        console.error("Error fetching latest arguments:", error);
+        // Fallback to props if fetch fails
+        setLatestArgs(Clash_arguments);
+      } finally {
+        setIsLoadingArgs(false);
+      }
+    };
+
+    fetchLatestArguments();
+  }, [_id, Clash_arguments]);
   
   // Standardized argument handling
   const argumentCount = Array.isArray(Clash_arguments) ? Clash_arguments.length : 0;
@@ -172,8 +197,8 @@ export default function ClashCard({
           {/* Clash Arguments Button */}
           <div className="flex-1">
             <ClashArgumentsDisplay
-              argumentCount={argumentCount}
-              Clash_arguments={Clash_arguments}
+              Clash_arguments={latestArgs}
+              isLoading={isLoadingArgs}
               onHover={handleClashArgumentsButtonHover}
               onClick={handleClashArgumentsClick}
               buttonRef={menuRefs.Clash_arguments}

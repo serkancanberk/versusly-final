@@ -20,13 +20,14 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
     const payload = {
       side: sideMap[selectedSide],
       text: text.trim(),
+      clashId: clashId
     };
 
     console.log("Payload to be sent:", payload);
 
     try {
       setLoading(true);
-      const response = await fetch(`/api/clashes/${clashId}/entries`, {
+      const response = await fetch(`/api/arguments`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -40,15 +41,9 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
         throw new Error(errorData.message || 'Failed to submit argument');
       }
 
-      const result = await response.json();
+      const newArgument = await response.json();
       if (onArgumentSubmitted) {
-        // Pass the complete newArgument object from the backend response
-        onArgumentSubmitted(result.newArgument);
-      }
-
-      if (result.voteRecorded) {
-        setVoteFeedback('Your vote has been recorded!');
-        setTimeout(() => setVoteFeedback(null), 5000);
+        onArgumentSubmitted(newArgument);
       }
 
       setText('');
