@@ -258,7 +258,7 @@ export default function ClashDetails({ clashId }) {
                   }
                 };
 
-                const updatedArguments = [...(prevClash.Clash_arguments || []), formattedArgument];
+                const updatedArguments = [formattedArgument, ...(prevClash.Clash_arguments || [])];
 
                 const updatedVotes = newArgument.voteRecorded
                   ? [...(prevClash.votes || []), {

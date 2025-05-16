@@ -61,16 +61,41 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
 
   const getButtonStyles = (side) => {
     const isSelected = selectedSide === sideLabels[side].value;
-    return `pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
-      isSelected
-        ? 'border-accent bg-accent text-white'
-        : 'border-accent text-secondary border-opacity-25 border-dashed'
-    }`;
+    const baseStyles = 'flex-1 py-2 px-3 rounded-2xl text-caption border truncate';
+    
+    if (!isSelected) {
+      return `${baseStyles} border-opacity-25 border-dashed`;
+    }
+
+    // Apply side-specific colors when selected
+    switch (side) {
+      case 'sideA':
+        return `${baseStyles} bg-[#FB8000] text-white border-[#FB8000]`;
+      case 'neutral':
+        return `${baseStyles} bg-[#6B7280] text-white border-[#6B7280]`;
+      case 'sideB':
+        return `${baseStyles} bg-black text-white border-black`;
+      default:
+        return `${baseStyles} border-accent text-secondary`;
+    }
+  };
+
+  const getSubmitButtonStyles = () => {
+    switch (selectedSide) {
+      case 'for':
+        return 'bg-[#FB8000] text-white';
+      case 'neutral':
+        return 'bg-[#6B7280] text-white';
+      case 'against':
+        return 'bg-black text-white';
+      default:
+        return 'bg-accent text-bgashwhite';
+    }
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-      <h2 className="text-xl font-semibold mb-4">Drop Your Take</h2>
+      <h2 className="text-xl font-semibold mb-4">Make Your Move</h2>
       <h3 className="text-caption font-medium mb-2 text-mutedDark">Pick your side</h3>
       <div className="flex gap-4 mb-4">
         {!sideLabels ? (
@@ -110,7 +135,7 @@ export default function ArgumentSubmissionForm({ clashId, sideLabels, onArgument
       )}
       <div className="flex justify-end mt-4">
         <button
-          className={`px-6 py-4 bg-accent text-bgashwhite text-label rounded-2xl ${
+          className={`px-6 py-4 ${getSubmitButtonStyles()} text-label rounded-2xl ${
             selectedSide && text.trim() && !loading
               ? 'hover:bg-opacity-90'
               : 'opacity-50 cursor-not-allowed'

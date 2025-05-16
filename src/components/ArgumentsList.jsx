@@ -4,12 +4,32 @@ import { useAuth } from "../context/AuthContext";
 
 export default function ArgumentsList({ arguments: args = [], setArguments, sideLabels }) {
   const { user: currentUser } = useAuth();
+  const [openMenuId, setOpenMenuId] = React.useState(null);
+  const toggleMenu = (id) => {
+    setOpenMenuId(openMenuId === id ? null : id);
+  };
+  const handleReportArgument = (argId) => {
+    alert(`Report functionality is not implemented yet for argument ${argId}`);
+  };
 
   useEffect(() => {
     console.log("🔥 ArgumentsList mounted with props:", args);
     console.log("🔍 sideLabels received:", sideLabels);
   }, [args, sideLabels]);
   console.log("🧪 args length:", args?.length, "first arg:", args?.[0]);
+
+  // Close argument menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".argument-menu")) {
+        setOpenMenuId(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleDeleteArgument = async (argId) => {
     try {
@@ -65,8 +85,32 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
             return (
             <div 
               key={arg._id} 
-              className="bg-white dark:bg-secondary p-4 rounded-lg shadow border border-muted/50 hover:shadow-md hover:border-muted transition-all duration-200"
+              className="bg-white dark:bg-secondary p-4 rounded-lg shadow border border-muted/50 hover:shadow-md hover:border-muted transition-all duration-200 relative"
             >
+              <div className="absolute top-2 right-2">
+                <button className="text-muted dark:text-muted-dark hover:text-secondary" onClick={() => toggleMenu(arg._id)}>
+                  ⋮
+                </button>
+                {openMenuId === arg._id && (
+                  <div className="absolute right-0 mt-2 w-32 bg-white dark:bg-secondary border border-gray-200 dark:border-muted rounded shadow z-10 argument-menu">
+                    {arg.user?._id === currentUser?._id ? (
+                      <button
+                        onClick={() => handleDeleteArgument(arg._id)}
+                        className="block w-full px-4 py-2 text-left text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-muted"
+                      >
+                        Delete
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleReportArgument(arg._id)}
+                        className="block w-full px-4 py-2 text-left text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-muted"
+                      >
+                        Report
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="flex items-start mb-2 space-x-3">
                 <img
                   src={(arg.user?.picture) || "/default-avatar.png"}
@@ -80,24 +124,16 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
                     </span>
                     <span className="text-xs text-muted dark:text-muted-dark">
                       {formatDistanceToNow(new Date(arg.createdAt), { addSuffix: true })}
-                      {arg.user?._id === currentUser?._id && (
-                        <button 
-                          onClick={() => handleDeleteArgument(arg._id)}
-                          className="text-xs text-red-500 hover:underline ml-2"
-                        >
-                          Delete
-                        </button>
-                      )}
                     </span>
                   </div>
                   <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-muted-dark">
                     <span
-                      className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                      className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-normal ${
                         (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'for'
-                          ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100'
+                          ? 'bg-[#FB8000] text-white'
                           : (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'against'
-                          ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100'
-                          : 'bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100'
+                          ? 'bg-black text-white'
+                          : 'bg-[#6B7280] text-white'
                       }`}
                     >
                       {getSideLabel(arg.side)}

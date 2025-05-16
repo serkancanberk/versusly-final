@@ -38,53 +38,67 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
       label: sideA_label,
       percent: voteDistribution.sideA ?? 0,
       count: votes.sideA ?? 0,
-      bgColor: '#FB8000',
-      textColor: '#FCFCFC',
+      bgColor: '#FB8000', // orange
+      textColor: '#FFFFFF', // white
     },
     {
       label: neutral_label,
       percent: voteDistribution.neutral ?? 0,
       count: votes.neutral ?? 0,
-      bgColor: '#9CA3AF', // Tailwind gray-400 hex
-      textColor: '#4B5563', // Tailwind gray-600 hex
+      bgColor: '#6B7280', // darker gray
+      textColor: '#FFFFFF', // white
     },
     {
       label: sideB_label,
       percent: voteDistribution.sideB ?? 0,
       count: votes.sideB ?? 0,
-      bgColor: '#EF4444', // Tailwind red-500 hex
-      textColor: '#DC2626', // Tailwind red-600 hex
+      bgColor: '#000000', // black
+      textColor: '#FFFFFF', // white
     },
   ]);
 
   return (
     <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4 mt-8">Vote Distribution</h2>
+      <h2 className="text-xl font-semibold mb-4 mt-8">The Clash-o-Meter</h2>
 
-      {/* Three-column card layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* Horizontal bar visualization */}
+      <div className="w-full h-6 flex overflow-hidden rounded-lg shadow border border-gray-200">
         {voteData.map((item, index) => (
           <div
             key={index}
-            className="flex flex-col items-center justify-center rounded-lg shadow-sm border border-gray-200 p-4 min-h-[120px]"
             style={{
+              width: `${item.adjustedPercent}%`,
               backgroundColor: item.percent === 0
                 ? `${item.bgColor}40`
                 : item.bgColor,
               color: item.textColor,
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              fontSize: '0.75rem',
+              fontWeight: 600,
               opacity: item.percent === 0 ? 0.25 : 1,
             }}
+            title={`${item.label}: ${item.percent}% (${item.count} votes)`}
           >
-            <div className="text-center">
-              <div className="text-base font-medium mb-2 truncate max-w-full">
-                {item.label}
-              </div>
-              <div className="text-sm font-semibold">
-                {item.percent}%
-              </div>
-              <div className="text-xs text-gray-800">
-                ({item.count} votes)
-              </div>
+            {item.percent >= 5 ? `${item.percent}%` : ''}
+          </div>
+        ))}
+      </div>
+
+      {/* Detailed legend below the bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm text-center text-gray-700">
+        {voteData.map((item, index) => (
+          <div key={index}>
+            <div className="flex items-center justify-center gap-2 font-semibold text-sm">
+              <span
+                className="inline-block w-3 h-3 rounded-sm border border-white"
+                style={{ backgroundColor: item.bgColor }}
+              ></span>
+              <span style={{ color: item.bgColor }}>{item.label}</span>
+            </div>
+            <div className="text-xs text-gray-500">
+              {item.count} votes
             </div>
           </div>
         ))}

@@ -531,7 +531,7 @@ Return only a comma-separated list of concise tags. No explanations.
                   title={fullSideATitle}
                   className={`pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
                     selectedSide === "A"
-                      ? "border-accent bg-accent text-white"
+                      ? "bg-[#FB8000] text-white border-[#FB8000]"
                       : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
                 >
@@ -545,7 +545,7 @@ Return only a comma-separated list of concise tags. No explanations.
                   title={fullSideBTitle}
                   className={`pick-your-side-button flex-1 py-2 px-3 rounded-2xl text-caption border truncate ${
                     selectedSide === "B"
-                      ? "border-accent bg-accent text-white"
+                      ? "bg-black text-white border-black"
                       : "border-accent text-secondary border-opacity-25 border-dashed"
                   }`}
                 >
@@ -656,7 +656,9 @@ Return only a comma-separated list of concise tags. No explanations.
             {/* Submit button */}
             <div className="flex justify-end">
               <button
-                className={`px-6 py-4 bg-accent text-bgashwhite text-label rounded-2xl ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90'}`}
+                className={`px-6 py-4 rounded-2xl text-bgashwhite text-label ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-90'} ${
+                  selectedSide === "A" ? 'bg-[#FB8000]' : selectedSide === "B" ? 'bg-black' : 'bg-accent'
+                }`}
                 onClick={handleReleaseClash}
                 disabled={isLoading}
               >
