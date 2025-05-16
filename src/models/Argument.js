@@ -21,6 +21,11 @@ const argumentSchema = new mongoose.Schema({
     enum: ['for', 'against', 'neutral'],
     required: true
   },
+  parentArgumentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Argument',
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now

@@ -307,6 +307,7 @@ export default function ClashDetails({ clashId }) {
               }));
             }}
             sideLabels={clash.sideLabels}
+            clashId={clash._id}
           />
         </div>
         <SimilarClashes clashes={clash.similarClashes} />
