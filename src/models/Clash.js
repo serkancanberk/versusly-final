@@ -91,6 +91,9 @@ const clashSchema = new mongoose.Schema({
 // Add index for tags to improve query performance
 clashSchema.index({ tags: 1 });
 
+// Add text index for title and statement search
+clashSchema.index({ vs_title: 'text', vs_statement: 'text' });
+
 const Clash = mongoose.model("Clash", clashSchema);
 
 export default Clash;

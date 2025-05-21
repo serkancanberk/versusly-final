@@ -13,6 +13,7 @@ import getStatusLabel from '../utils/statusLabel';
 import { extractSideLabelsFromTitle } from '../utils/parseSides';
 import ClashVotingBar from './ClashVotingBar';
 import ArgumentSubmissionForm from './ArgumentSubmissionForm';
+import SimilarClashes from './SimilarClashes';
 
 // Component stubs - these will be implemented as separate components later
 const ClashImageBanner = () => (
@@ -55,28 +56,13 @@ const ClashMetadata = ({ clash }) => (
 );
 
 
-const SimilarClashes = ({ clashes }) => (
-  <div className="mb-8">
-    <h2 className="text-xl font-semibold mb-4">Similar Clashes</h2>
-    <div className="space-y-4">
-      {(clashes || Array(3).fill(null)).map((clash, index) => (
-        <div
-          key={index}
-          className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
-        >
-          <h3 className="font-semibold mb-1">{clash?.title || `Similar Clash ${index + 1}`}</h3>
-          <p className="text-sm text-gray-600 mb-2">{clash?.statement || 'This is a sample clash statement...'}</p>
-          <p className="text-sm text-gray-500">{clash?.preview || 'Preview of the clash content...'}</p>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 export default function ClashDetails({ clashId }) {
   const [clash, setClash] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [similarClashes, setSimilarClashes] = useState([]);
+  const [similarClashesLoading, setSimilarClashesLoading] = useState(false);
+  const [similarClashesError, setSimilarClashesError] = useState(null);
   const { user } = useAuth();
   const hasScrolledRef = useRef(false);
 
@@ -146,17 +132,40 @@ export default function ClashDetails({ clashId }) {
     }
   };
 
+  const fetchSimilarClashes = async () => {
+    try {
+      setSimilarClashesLoading(true);
+      setSimilarClashesError(null);
+
+      const response = await fetch(`/api/clashes/${clashId}/similar`);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log("📎 SimilarClashes data fetched:", data);
+      setSimilarClashes(data);
+    } catch (err) {
+      setSimilarClashesError(err.message || 'Failed to fetch similar clashes');
+    } finally {
+      setSimilarClashesLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!clashId) {
       setLoading(false);
+      setSimilarClashesLoading(false);
       return;
     }
 
     fetchClash();
+    fetchSimilarClashes();
 
     return () => {
       setClash(null);
       setError(null);
+      setSimilarClashes([]);
+      setSimilarClashesError(null);
     };
   }, [clashId]);
 
@@ -310,7 +319,23 @@ export default function ClashDetails({ clashId }) {
             clashId={clash._id}
           />
         </div>
-        <SimilarClashes clashes={clash.similarClashes} />
+        <div className="mt-12">
+          <h2 className="text-xl font-bold mb-4">You Might Also Like</h2>
+          {similarClashesLoading ? (
+            <div className="flex items-center justify-center p-4">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+            </div>
+          ) : similarClashesError ? (
+            <div className="p-4 text-alert">
+              <p>Error loading similar clashes: {similarClashesError}</p>
+            </div>
+          ) : (
+            <>
+              {console.log("📦 Passing similarClashes to component:", similarClashes)}
+              <SimilarClashes clashes={similarClashes} />
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ export default function ArgumentReplyForm({ parentArgumentId, clashId, onReplySu
   const [text, setText] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [showSuccess, setShowSuccess] = useState(false);
   const { user } = useAuth();
 
   const handleSubmit = async (e) => {
@@ -34,8 +35,13 @@ export default function ArgumentReplyForm({ parentArgumentId, clashId, onReplySu
       }
 
       const newReply = await response.json();
-      onReplySubmitted(newReply);
-      setText('');
+      onReplySubmitted(newReply, true);
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        setText('');
+        onCancel();
+      }, 5000);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,13 +50,16 @@ export default function ArgumentReplyForm({ parentArgumentId, clashId, onReplySu
   };
 
   return (
-    <div className="ml-8 mt-2 border-l-2 border-gray-200 pl-4">
+    <div className="ml-8 mt-2 pl-4">
+      {showSuccess && (
+        <p className="text-caption text-muted-dark">✓ Reply added</p>
+      )}
       <form onSubmit={handleSubmit} className="space-y-2">
         <textarea
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Write your reply..."
-          className="w-full bg-bgwhite rounded-3xl text-caption text-secondary border border-muted25 focus:outline-none resize-y max-h-32 px-3 py-2"
+          className="w-full bg-bgwhite rounded-xl text-caption text-secondary border border-muted25 focus:outline-none resize-y max-h-32 px-3 py-2"
           rows={2}
         />
         {error && (
@@ -70,7 +79,7 @@ export default function ArgumentReplyForm({ parentArgumentId, clashId, onReplySu
             className={`px-4 py-2 text-sm rounded-lg ${
               !text.trim() || loading
                 ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-primary text-white hover:bg-primary-dark'
+                : 'bg-[#6B7280] text-white hover:bg-gray-700'
             }`}
           >
             {loading ? 'Submitting...' : 'Reply'}

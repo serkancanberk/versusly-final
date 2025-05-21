@@ -1,5 +1,6 @@
 import Reaction from "../models/Reaction.js";
 import Clash from "../models/Clash.js";
+import mongoose from "mongoose";
 
 export const createClash = async (req, res) => {
   try {
@@ -221,17 +222,49 @@ export const searchClashes = async (req, res) => {
       return res.status(400).json({ message: "Query too short" });
     }
 
-    const results = await Clash.find({
-      $or: [
-        { vs_title: { $regex: q, $options: "i" } },
-        { vs_statement: { $regex: q, $options: "i" } }
-      ]
-    })
-    .sort({ createdAt: -1 })
+    // First, perform text search with textScore
+    const textSearchResults = await Clash.find(
+      { $text: { $search: q } },
+      { 
+        score: { $meta: "textScore" },
+        vs_title: 1,
+        vs_statement: 1,
+        tags: 1,
+        creator: 1,
+        createdAt: 1,
+        expires_at: 1,
+        reactions: 1,
+        Clash_arguments: 1
+      }
+    )
+    .sort({ score: { $meta: "textScore" } })
     .limit(20)
     .populate("creator", "name picture email");
 
-    res.status(200).json(results);
+    // Calculate similarity scores
+    const resultsWithScores = textSearchResults.map(clash => {
+      // Get text score (normalized between 0 and 1)
+      const textScore = clash._doc.score || 0;
+      
+      // Calculate tag match score
+      const queryTags = q.toLowerCase().split(/\s+/).filter(tag => tag.length > 2);
+      const tagMatchScore = clash.tags.reduce((score, tag) => {
+        return score + (queryTags.some(qTag => tag.toLowerCase().includes(qTag)) ? 1 : 0);
+      }, 0) / Math.max(1, clash.tags.length);
+
+      // Combine scores (70% text score, 30% tag match)
+      const similarityScore = (textScore * 0.7) + (tagMatchScore * 0.3);
+
+      return {
+        ...clash._doc,
+        similarityScore
+      };
+    });
+
+    // Sort by combined similarity score
+    resultsWithScores.sort((a, b) => b.similarityScore - a.similarityScore);
+
+    res.status(200).json(resultsWithScores);
   } catch (error) {
     console.error("Error in searchClashes:", error);
     res.status(500).json({ message: "Internal server error" });
@@ -285,6 +318,81 @@ export const getClashesByTag = async (req, res) => {
     res.status(200).json(clashesWithReactions);
   } catch (error) {
     console.error("Error fetching clashes by tag:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const getSimilarClashes = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // First, get the current clash to find its tags
+    const currentClash = await Clash.findById(id);
+    if (!currentClash) {
+      return res.status(404).json({ message: "Clash not found" });
+    }
+
+    // Get the tags from the current clash
+    const currentTags = currentClash.tags || [];
+    if (currentTags.length === 0) {
+      return res.json([]); // Return empty array if no tags
+    }
+
+    // Find clashes that share at least one tag with the current clash
+    const similarClashes = await Clash.aggregate([
+      {
+        $match: {
+          _id: { $ne: new mongoose.Types.ObjectId(id) }, // Exclude current clash
+          tags: { $in: currentTags } // Match clashes with at least one matching tag
+        }
+      },
+      {
+        $addFields: {
+          // Calculate number of matching tags
+          matchingTags: {
+            $size: {
+              $setIntersection: ["$tags", currentTags]
+            }
+          }
+        }
+      },
+      {
+        $sort: { matchingTags: -1 } // Sort by number of matching tags (descending)
+      },
+      {
+        $limit: 5 // Limit to 5 results
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "creator",
+          foreignField: "_id",
+          as: "creator"
+        }
+      },
+      {
+        $unwind: "$creator"
+      },
+      {
+        $project: {
+          _id: 1,
+          vs_title: 1,
+          vs_statement: 1,
+          tags: 1,
+          createdAt: 1,
+          expires_at: 1,
+          reactions: 1,
+          matchingTags: 1,
+          "creator.name": 1,
+          "creator.picture": 1,
+          "creator.email": 1
+        }
+      }
+    ]);
+
+    res.status(200).json(similarClashes);
+  } catch (error) {
+    console.error("Error finding similar clashes:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 };

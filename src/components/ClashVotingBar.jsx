@@ -58,11 +58,11 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
   ]);
 
   return (
-    <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4 mt-8">The Clash-o-Meter</h2>
+    <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 className="text-xl font-semibold mb-6">The Clash-o-Meter</h2>
 
       {/* Horizontal bar visualization */}
-      <div className="w-full h-6 flex overflow-hidden rounded-lg shadow border border-gray-200">
+      <div className="w-full h-6 flex overflow-hidden rounded-2xl border border-muted25">
         {voteData.map((item, index) => (
           <div
             key={index}
@@ -87,15 +87,15 @@ const ClashVotingBar = ({ clash, votes: propVotes, voteDistribution: propVoteDis
       </div>
 
       {/* Detailed legend below the bar */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 text-sm text-center text-gray-700">
+      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-4 text-caption text-center text-secondary">
         {voteData.map((item, index) => (
           <div key={index}>
-            <div className="flex items-center justify-center gap-2 font-semibold text-sm">
+            <div className="flex items-center justify-center gap-2 text-caption font-medium">
               <span
                 className="inline-block w-3 h-3 rounded-sm border border-white"
                 style={{ backgroundColor: item.bgColor }}
               ></span>
-              <span style={{ color: item.bgColor }}>{item.label}</span>
+              <span className="text-secondary" style={{ color: item.bgColor }}>{item.label}</span>
             </div>
             <div className="text-xs text-gray-500">
               {item.count} votes

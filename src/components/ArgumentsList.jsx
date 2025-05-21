@@ -8,6 +8,7 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
   const [openMenuId, setOpenMenuId] = React.useState(null);
   const [replyingToId, setReplyingToId] = React.useState(null);
   const [groupedArguments, setGroupedArguments] = useState({});
+  const [openReplyIds, setOpenReplyIds] = useState([]);
 
   // Group arguments by parent
   useEffect(() => {
@@ -37,12 +38,18 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
     setOpenMenuId(openMenuId === id ? null : id);
   };
 
+  const toggleReplies = (id) => {
+    setOpenReplyIds(prev =>
+      prev.includes(id) ? prev.filter(openId => openId !== id) : [...prev, id]
+    );
+  };
+
   const handleReportArgument = (argId) => {
     alert(`Report functionality is not implemented yet for argument ${argId}`);
   };
 
   const handleReply = (argId) => {
-    setReplyingToId(argId);
+    setReplyingToId(prevId => (prevId === argId ? null : argId));
   };
 
   const handleReplySubmitted = (newReply) => {
@@ -104,11 +111,13 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
   };
 
   const renderArgument = (arg, isReply = false) => (
-    <div 
-      key={arg._id} 
-      className={`bg-white dark:bg-secondary p-4 rounded-lg shadow border border-muted/50 hover:shadow-md hover:border-muted transition-all duration-200 relative ${
-        isReply ? 'ml-8 mt-2 border-l-2 border-gray-200' : ''
-      }`}
+    <div
+      key={arg._id}
+      className={
+        isReply
+          ? "border-b border-muted/50 pb-4 mb-4 ml-8"
+          : "border-b border-muted/50 pb-4 mb-4 relative"
+      }
     >
       <div className="absolute top-2 right-2">
         <button className="text-muted dark:text-muted-dark hover:text-secondary" onClick={() => toggleMenu(arg._id)}>
@@ -126,7 +135,7 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
             ) : (
               <button
                 onClick={() => handleReportArgument(arg._id)}
-                className="block w-full px-4 py-2 text-left text-sm text-yellow-600 hover:bg-gray-100 dark:hover:bg-muted"
+                className="block w-full px-4 py-2 text-left text-sm text-[#6B7280] hover:bg-gray-100 dark:hover:bg-muted"
               >
                 Report
               </button>
@@ -149,24 +158,26 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
               {formatDistanceToNow(new Date(arg.createdAt), { addSuffix: true })}
             </span>
           </div>
-          <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-muted-dark">
-            <span
-              className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-normal ${
-                (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'for'
-                  ? 'bg-[#FB8000] text-white'
-                  : (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'against'
-                  ? 'bg-black text-white'
-                  : 'bg-[#6B7280] text-white'
-              }`}
-            >
-              {getSideLabel(arg.side)}
-            </span>
-          </div>
+          {!isReply && (
+            <div className="mt-1 flex items-center text-sm text-gray-500 dark:text-muted-dark">
+              <span
+                className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-normal ${
+                  (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'for'
+                    ? 'bg-[#FB8000] text-white'
+                    : (typeof arg.side === 'string' ? arg.side : arg.side?.value) === 'against'
+                    ? 'bg-black text-white'
+                    : 'bg-[#6B7280] text-white'
+                }`}
+              >
+                {getSideLabel(arg.side)}
+              </span>
+            </div>
+          )}
           <p className="text-sm text-gray-800 dark:text-muted mt-1">{arg.text}</p>
           {!isReply && currentUser && (
             <button
               onClick={() => handleReply(arg._id)}
-              className="mt-2 text-sm text-primary hover:text-primary-dark"
+              className="mt-2 text-sm text-[#6B7280] hover:text-gray-700"
             >
               Reply
             </button>
@@ -174,31 +185,49 @@ export default function ArgumentsList({ arguments: args = [], setArguments, side
         </div>
       </div>
       {replyingToId === arg._id && (
-        <ArgumentReplyForm
-          parentArgumentId={arg._id}
-          clashId={clashId}
-          onReplySubmitted={handleReplySubmitted}
-          onCancel={() => setReplyingToId(null)}
-        />
+        <div className="mt-2">
+          <ArgumentReplyForm
+            parentArgumentId={arg._id}
+            clashId={clashId}
+            onReplySubmitted={handleReplySubmitted}
+            onCancel={() => setReplyingToId(null)}
+          />
+        </div>
       )}
-      {!isReply && groupedArguments[arg._id]?.replies?.map(reply => renderArgument(reply, true))}
+      {!isReply && groupedArguments[arg._id]?.replies?.length > 0 && (
+        <div className="ml-11 mt-2">
+          <button
+            onClick={() => toggleReplies(arg._id)}
+            className="text-sm text-[#6B7280] hover:text-gray-700"
+          >
+            {openReplyIds.includes(arg._id)
+              ? "Hide Replies"
+              : `View Replies (${groupedArguments[arg._id].replies.length})`}
+          </button>
+        </div>
+      )}
+      {!isReply &&
+        openReplyIds.includes(arg._id) &&
+        groupedArguments[arg._id]?.replies?.map(reply => renderArgument(reply, true))}
     </div>
   );
 
   return (
     <div className="mb-8">
-      <h2 className="text-xl font-semibold mb-4">Arguments</h2>
-      {args?.length > 0 ? (
-        <div className="space-y-4">
-          {Object.values(groupedArguments)
-            .filter(arg => !arg.parentArgumentId)
-            .map(arg => renderArgument(arg))}
-        </div>
-      ) : (
-        <p className="text-gray-500 dark:text-muted-dark">
-          No arguments yet. Be the first to share your thoughts!
-        </p>
-      )}
+      <div className="bg-white dark:bg-secondary p-4 rounded-lg shadow border border-muted/50">
+        <h2 className="text-xl font-semibold text-secondary dark:text-white mb-4">Arguments</h2>
+        {args?.length > 0 ? (
+          <div>
+            {Object.values(groupedArguments)
+              .filter(arg => !arg.parentArgumentId)
+              .map(arg => renderArgument(arg))}
+          </div>
+        ) : (
+          <p className="text-sm text-gray-500 dark:text-muted-dark">
+            No arguments yet. Be the first to share your thoughts!
+          </p>
+        )}
+      </div>
     </div>
   );
 }

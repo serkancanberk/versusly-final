@@ -5,7 +5,8 @@ import {
   createClash,
   getClashes,
   getClashById,
-  getClashesByTag
+  getClashesByTag,
+  getSimilarClashes
 } from '../controllers/clashController.js';
 import authenticateUser from "../middleware/authMiddleware.js";
 import getStatusLabel from '../utils/statusLabel.js';
@@ -126,6 +127,9 @@ router.get('/search', async (req, res) => {
 
 // Tek bir Clash'i getirme (controller)
 router.get('/:id', getClashById);
+
+// Get similar clashes
+router.get('/:id/similar', getSimilarClashes);
 
 // Yeni Clash oluşturma
 router.post('/', authenticateUser, createClash);
