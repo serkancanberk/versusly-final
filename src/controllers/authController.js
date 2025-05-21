@@ -6,6 +6,55 @@ import jwt from "jsonwebtoken";
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
+ * Enrich user data with Google profile information if fields are missing
+ */
+const enrichUserData = async (user, googleData) => {
+  const { given_name: firstName, family_name: lastName } = googleData;
+  let hasUpdates = false;
+  const updates = {};
+
+  // Check and update firstName if missing
+  if (!user.firstName && firstName) {
+    updates.firstName = firstName;
+    hasUpdates = true;
+  }
+
+  // Check and update lastName if missing
+  if (!user.lastName && lastName) {
+    updates.lastName = lastName;
+    hasUpdates = true;
+  }
+
+  // Check and update nickname if missing
+  if (!user.nickname && firstName) {
+    updates.nickname = await User.generateUniqueNickname(firstName, lastName);
+    hasUpdates = true;
+  }
+
+  // Check and update profilePicture if missing
+  if (!user.profilePicture && googleData.picture) {
+    updates.profilePicture = googleData.picture;
+    hasUpdates = true;
+  }
+
+  // Only update if there are changes
+  if (hasUpdates) {
+    console.log('Enriching user data with Google profile:', {
+      userId: user._id,
+      updates
+    });
+    
+    // Update user with new data
+    Object.assign(user, updates);
+    await user.save();
+    
+    console.log('User data enriched successfully');
+  }
+
+  return user;
+};
+
+/**
  * Handle Google Sign-In, verify ID token, create or retrieve user, and issue JWT
  */
 export const handleGoogleLogin = async (req, res) => {
@@ -23,22 +72,45 @@ export const handleGoogleLogin = async (req, res) => {
       audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
-    const { email, name, picture, sub: googleId } = payload;
+    const { email, given_name: firstName, family_name: lastName, picture: profilePicture, sub: googleId } = payload;
     console.log('Google token verified for user:', email);
 
     // Find or create user
     let user = await User.findOne({ googleId });
     if (!user) {
       console.log('Creating new user for:', email);
-      user = new User({ googleId, email, name, picture });
+      
+      // Generate a unique nickname
+      const nickname = await User.generateUniqueNickname(firstName, lastName);
+      
+      // Create new user with all required fields
+      user = new User({
+        googleId,
+        email,
+        firstName,
+        lastName,
+        nickname,
+        profilePicture,
+        bio: '' // Default empty bio
+      });
+      
       await user.save();
+      console.log('New user created:', { email, nickname });
     } else {
       console.log('Found existing user:', email);
+      // Enrich existing user data if needed
+      user = await enrichUserData(user, payload);
     }
 
     // Generate application JWT
     const jwtToken = jwt.sign(
-      { id: user._id, email: user.email, name: user.name },
+      { 
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -68,12 +140,16 @@ export const handleGoogleLogin = async (req, res) => {
 
     // Respond with user data (but no token in the response body)
     return res.status(200).json({
+      success: true,
       message: "User authenticated",
       user: {
         _id: user._id,
-        name: user.name,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        nickname: user.nickname,
         email: user.email,
-        picture: user.picture,
+        profilePicture: user.profilePicture,
+        bio: user.bio
       },
     });
   } catch (error) {
@@ -83,6 +159,9 @@ export const handleGoogleLogin = async (req, res) => {
       stack: error.stack,
       name: error.name
     });
-    return res.status(401).json({ message: "Authentication failed" });
+    return res.status(401).json({ 
+      success: false,
+      message: "Authentication failed" 
+    });
   }
 };

@@ -24,7 +24,7 @@ const NavigationSidebar = () => {
           </li>
           <li>
             {isLoggedIn ? (
-              <a href="#" className="flex items-center text-secondary hover:text-alert pl-2">
+              <a href="/?view=profile" className="flex items-center text-secondary hover:text-alert pl-2">
                 <span className="inline-block w-6 mr-3">🥷🏻</span>
                 <span className="text-body">Profile</span>
               </a>

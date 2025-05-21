@@ -10,12 +10,20 @@ import authRoutes from './src/routes/authRoutes.js';
 import gptRoutes from './src/routes/gptRoutes.js';
 import reactionRoutes from './src/routes/reactionRoutes.js';
 import argumentRoutes from './src/routes/argumentRoutes.js';
+import userRoutes from './src/routes/userRoutes.js';
 import authenticateUser from './src/middleware/authMiddleware.js';
+import { multerErrorHandler } from './src/middleware/uploadMiddleware.js';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 const app = express();
 // Trust first proxy (needed for secure cookies when behind a proxy)
 app.set('trust proxy', 1);
 let server; // Server instance'ını global olarak tutuyoruz
+
+// Get the directory name
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Graceful shutdown function
 const gracefulShutdown = () => {
@@ -50,7 +58,7 @@ const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL 
     : "http://localhost:5173",
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   credentials: true, // This is critical for cookies
   exposedHeaders: ["set-cookie"],
@@ -69,13 +77,16 @@ app.use((req, res, next) => {
     cookies: req.cookies,
     headers: {
       cookie: req.headers.cookie,
-      authorization: req.headers.authorization
+      authorization: req.headers.authorization,
+      'content-type': req.headers['content-type']
     }
   });
   next();
 });
 
+// Apply CORS before other middleware
 app.use(cors(corsOptions));
+
 // Enable preflight across all routes
 app.options('*', cors(corsOptions));
 
@@ -102,6 +113,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/gpt', gptRoutes);
 app.use('/api/reactions', authenticateUser, reactionRoutes);
 app.use('/api/arguments', argumentRoutes);
+app.use('/api/user', authenticateUser, userRoutes);
+
+// Add multer error handler after routes that use file upload
+console.log('Multer error handler:', multerErrorHandler); // Verify the handler is defined
+app.use(multerErrorHandler);
+
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 
 // 404 handler
 app.use((req, res) => {

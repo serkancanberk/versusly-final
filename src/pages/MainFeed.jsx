@@ -9,6 +9,7 @@ import Header from '../components/Header';
 import SearchResults from '../components/SearchResults';
 import TagResults from '../components/TagResults';
 import { useAuth } from '../context/AuthContext';
+import Profile from '../components/Profile';
 
 const MainFeed = () => {
   const [searchParams] = useSearchParams();
@@ -52,7 +53,9 @@ const MainFeed = () => {
 
         {/* Center Feed - Scrollable */}
         <div className="w-full sm:w-[60%] lg:w-[55%] border-x border-muted overflow-y-auto">
-          {clashId ? (
+          {searchParams.get("view") === "profile" ? (
+            <Profile />
+          ) : clashId ? (
             <ClashDetails clashId={clashId} />
           ) : searchQuery ? (
             <SearchResults />
