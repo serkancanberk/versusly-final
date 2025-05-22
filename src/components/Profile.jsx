@@ -20,6 +20,8 @@ const Profile = () => {
   const [initialData, setInitialData] = useState(null);
   const [highlightedFields, setHighlightedFields] = useState({});
   const [selectedFile, setSelectedFile] = useState(null);
+  const [editingField, setEditingField] = useState(null);
+  const [showProfilePictureInput, setShowProfilePictureInput] = useState(false);
 
   const editFormRef = useRef(null);
   const alertTimeoutRef = useRef(null);
@@ -112,6 +114,11 @@ const Profile = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Revoke previous preview URL if it exists
+      if (previewImage) {
+        URL.revokeObjectURL(previewImage);
+      }
+      
       // Create preview URL
       const previewUrl = URL.createObjectURL(file);
       setPreviewImage(previewUrl);
@@ -203,12 +210,22 @@ const Profile = () => {
     }
   };
 
-  const handleEditClick = () => {
-    setIsEditing(true);
-    // Scroll to edit form after a short delay to ensure it's rendered
-    setTimeout(() => {
-      editFormRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+  const handleFieldClick = (fieldName) => {
+    if (!isEditing) {
+      setIsEditing(true);
+    }
+    setEditingField(fieldName);
+    
+    if (fieldName === 'profilePicture') {
+      setShowProfilePictureInput(true);
+    }
+  };
+
+  const handleFieldBlur = () => {
+    setEditingField(null);
+    if (editingField === 'profilePicture') {
+      setShowProfilePictureInput(false);
+    }
   };
 
   const handleCancel = () => {
@@ -227,12 +244,63 @@ const Profile = () => {
     }
     setSelectedFile(null);
     setIsEditing(false);
+    setEditingField(null);
+    setShowProfilePictureInput(false);
   };
 
   const getFieldClassName = (fieldName) => {
     const baseClasses = "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent";
     const highlightClasses = highlightedFields[fieldName] ? "bg-green-50 transition-colors duration-1000" : "";
     return `${baseClasses} ${highlightClasses}`;
+  };
+
+
+  const EditableField = ({ fieldName, label, type = "text", value = "", isEditing, isActive, onBlur }) => {
+    const isTextArea = type === "textarea";
+    const displayValue = fieldName === "nickname" ? `@${value || 'Not set'}` : (value || 'Not set');
+
+    return (
+      <div className="space-y-1">
+        <label htmlFor={fieldName} className="block text-caption text-mutedDark mb-1">
+          {label}
+        </label>
+        {isEditing && isActive ? (
+          isTextArea ? (
+            <textarea
+              id={fieldName}
+              name={fieldName}
+              value={value || ""}
+              onChange={handleInputChange}
+              onBlur={onBlur}
+              rows="3"
+              className={getFieldClassName(fieldName)}
+              required
+              autoFocus
+            />
+          ) : (
+            <input
+              type={type}
+              id={fieldName}
+              name={fieldName}
+              value={value || ""}
+              onChange={handleInputChange}
+              onBlur={onBlur}
+              className={getFieldClassName(fieldName)}
+              required
+              autoFocus
+            />
+          )
+        ) : (
+          <div
+            onClick={() => handleFieldClick(fieldName)}
+            className="px-3 py-2 text-secondary/80 hover:text-secondary hover:underline hover:cursor-pointer transition-all duration-200 flex items-center gap-2 group"
+          >
+            {displayValue}
+            <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-200">✏️</span>
+          </div>
+        )}
+      </div>
+    );
   };
 
   if (isLoading) {
@@ -248,7 +316,25 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-4 space-y-6">
+    <>
+      {/* Profile Header Section */}
+      <section className="bg-muted25 bg-[radial-gradient(circle,_#E0E2DB_1px,_transparent_1px)] bg-[length:12px_12px] pt-20 pb-4 border-b border-muted">
+        <div className="max-w-4xl mx-auto px-4 md:px-6">
+          <h1 className="text-subheading text-secondary flex items-center gap-2">
+            🥷 Your Profile
+          </h1>
+          <p className="text-label text-secondary opacity-50">
+            View and edit your public information
+          </p>
+          <button
+            onClick={() => window.location.href = "/"}
+            className="mt-4 text-label text-accent underline hover:opacity-80 transition-opacity"
+          >
+            ← Back to main feed
+          </button>
+        </div>
+      </section>
+
       {/* Alert Messages */}
       {error && (
         <Alert
@@ -266,166 +352,118 @@ const Profile = () => {
         />
       )}
 
-      {/* Profile Header Section */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-start mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">Your Profile</h1>
-          <button
-            onClick={handleEditClick}
-            className="px-4 py-2 text-sm font-medium text-primary hover:text-primary-dark transition-colors"
-          >
-            Edit Profile
-          </button>
-        </div>
-        
-        <div className="flex items-start space-x-6">
-          <div className="flex flex-col items-center space-y-2">
-            <ProfilePicture
-              image={previewImage || formData.profilePicture}
-              size="lg"
-              editable={isEditing}
-              onFileChange={handleFileChange}
-              isLoading={isSubmitting}
-            />
-            {selectedFile && (
-              <div className="text-sm text-gray-600">
-                Selected: {selectedFile.name} ({selectedFile.size}MB)
-              </div>
-            )}
-          </div>
-          
-          <div className="flex-1">
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">
-                  {formData.firstName} {formData.lastName}
-                </h2>
-                <p className="text-gray-600">@{formData.nickname}</p>
-              </div>
-              <p className="text-gray-700">{formData.bio}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Edit Form Section */}
-      <div ref={editFormRef} className="bg-white rounded-lg shadow p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Edit Profile</h2>
-          <button
-            onClick={handleCancel}
-            className="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 transition-colors"
-          >
-            Cancel
-          </button>
-        </div>
+      <section className="max-w-4xl mx-auto px-4 md:px-6">
+        <div ref={editFormRef} className="bg-white rounded-lg shadow-md p-6 mb-8 mt-8">
+          <h3 className="text-body font-semibold text-secondary mb-6">
+            {isEditing ? 'Editing your profile' : 'Tap a field to update your info'}
+          </h3>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 sm:grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                First Name
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  id="firstName"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleInputChange}
-                  className={getFieldClassName('firstName')}
-                  required
-                />
-              ) : (
-                <div className="px-3 py-2 text-gray-900">{formData.firstName || 'Not set'}</div>
-              )}
-            </div>
-
-            <div>
-              <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                Last Name
-              </label>
-              {isEditing ? (
-                <input
-                  type="text"
-                  id="lastName"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleInputChange}
-                  className={getFieldClassName('lastName')}
-                  required
-                />
-              ) : (
-                <div className="px-3 py-2 text-gray-900">{formData.lastName || 'Not set'}</div>
-              )}
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="nickname" className="block text-sm font-medium text-gray-700 mb-1">
-              Nickname
-            </label>
-            {isEditing ? (
-              <input
-                type="text"
-                id="nickname"
-                name="nickname"
-                value={formData.nickname}
-                onChange={handleInputChange}
-                className={getFieldClassName('nickname')}
-                required
-              />
-            ) : (
-              <div className="px-3 py-2 text-gray-900">@{formData.nickname || 'Not set'}</div>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
-              Bio
-            </label>
-            {isEditing ? (
-              <textarea
-                id="bio"
-                name="bio"
-                value={formData.bio}
-                onChange={handleInputChange}
-                rows="4"
-                className={getFieldClassName('bio')}
-              />
-            ) : (
-              <div className="px-3 py-2 text-gray-900">{formData.bio || 'No bio provided'}</div>
-            )}
-          </div>
-
-          {isEditing && (
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className={`px-6 py-2 bg-primary text-white font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors ${
-                  isSubmitting 
-                    ? 'opacity-50 cursor-not-allowed' 
-                    : 'hover:bg-primary-dark'
-                }`}
+          <form id="profile-form" onSubmit={handleSubmit} className="space-y-6">
+            {/* Profile Picture Section */}
+            <div className="flex flex-col items-center space-y-2 mb-6">
+              <div 
+                onClick={() => isEditing && handleFieldClick('profilePicture')}
+                className={`relative cursor-pointer transition-transform duration-200 ${isEditing ? 'hover:scale-105' : ''}`}
               >
-                {isSubmitting ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Saving...
-                  </span>
-                ) : (
-                  'Save Changes'
+                <ProfilePicture
+                  image={previewImage || formData.profilePicture}
+                  size="lg"
+                  editable={isEditing && showProfilePictureInput}
+                  onFileChange={handleFileChange}
+                  isLoading={isSubmitting}
+                  onEditActivate={() => {
+                    // Only trigger handleFieldClick and setShowProfilePictureInput.
+                    handleFieldClick('profilePicture');
+                    setShowProfilePictureInput(true);
+                    // Do NOT trigger the file input directly here to avoid double file picker.
+                  }}
+                />
+                {isEditing && !showProfilePictureInput && (
+                  <div className="absolute inset-0 bg-black/50 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200">
+                    <span className="text-white text-sm font-medium">Click to change photo</span>
+                  </div>
                 )}
-              </button>
+              </div>
+              {selectedFile && (
+                <div className="text-sm text-gray-600">
+                  Selected: {selectedFile.name} ({selectedFile.size}MB)
+                </div>
+              )}
             </div>
-          )}
-        </form>
-      </div>
-    </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <EditableField
+                fieldName="firstName"
+                label="First Name"
+                value={formData.firstName}
+                isEditing={isEditing}
+                isActive={editingField === 'firstName'}
+                onBlur={handleFieldBlur}
+              />
+
+              <EditableField
+                fieldName="lastName"
+                label="Last Name"
+                value={formData.lastName}
+                isEditing={isEditing}
+                isActive={editingField === 'lastName'}
+                onBlur={handleFieldBlur}
+              />
+            </div>
+
+            <EditableField
+              fieldName="nickname"
+              label="Nickname"
+              value={formData.nickname}
+              isEditing={isEditing}
+              isActive={editingField === 'nickname'}
+              onBlur={handleFieldBlur}
+            />
+
+            <EditableField
+              fieldName="bio"
+              label="Bio"
+              value={formData.bio}
+              isEditing={isEditing}
+              isActive={editingField === 'bio'}
+              onBlur={handleFieldBlur}
+            />
+
+            {isEditing && (
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="text-caption text-mutedDark hover:text-alert"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`px-6 py-3 rounded-2xl bg-black text-white text-label hover:bg-opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${
+                    isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                  }`}
+                >
+                  {isSubmitting ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Saving...
+                    </span>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+      </section>
+    </>
   );
 };
 
